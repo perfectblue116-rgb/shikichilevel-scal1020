@@ -437,6 +437,16 @@ function drawMarker(ctx,p,x,y,k){
   ctx.textAlign='left';ctx.textBaseline='top';ctx.fillStyle='#111';
   ctx.font=f1;ctx.fillText(l1,bx+pad,by+3*base);
   if(l2){ctx.font=f2;ctx.fillStyle='#444';ctx.fillText(l2,bx+pad,by+3*base+17*base);}
+  // 測定場所メモ：高さ表示の真上に表示（高さ表示の位置・測点の移動にそのまま追従）
+  let hx=bx,hy=by,hw=bw,hh=bh;
+  if(p.note){
+    const fn=`bold ${13*base}px sans-serif`;ctx.font=fn;
+    const nw=ctx.measureText(p.note).width+10*base,nh=13*base+9*base,ny=by-nh-3*base;
+    rr(ctx,bx,ny,nw,nh,4*base);ctx.fillStyle=col;ctx.fill();
+    ctx.fillStyle='#fff';ctx.font=fn;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(p.note,bx+5*base,ny+nh/2+0.5*base);
+    hx=bx;hy=ny;hw=Math.max(bw,nw);hh=by+bh-ny;
+  }
+  if(curLive)PLB.push({id:p.id,x:hx,y:hy,w:hw,h:hh});
 }
 // 移動した測点：押さえた元の位置(ax,ay)に印を残し、線でマーカーと結ぶ
 function drawLeader(ctx,p,v,k){
@@ -458,6 +468,28 @@ const MEAS=['scale','ext','line','perp','meas'];
 const C_REF='#d81b60',C_MEAS='#00695c',C_SC='#6a1b9a';
 let lastScaleUnit='mm';
 const LBL=[]; // 画面に描いた寸法ラベルの位置（ドラッグ移動の当たり判定用）
+const PLB=[]; let curLive=false; // 画面に描いた高さ表示(+測定場所)の範囲（長押し判定用）
+function hitPtLabel(x,y){
+  for(let i=PLB.length-1;i>=0;i--){const b=PLB[i];if(x>=b.x-4&&x<=b.x+b.w+4&&y>=b.y-4&&y<=b.y+b.h+4)return pointById(b.id);}
+  return null;
+}
+function noteDialog(p){
+  return new Promise(res=>{
+    const m=$('#modal');m.classList.add('show');
+    m.innerHTML=`<div class="box"><h3>測点 ${p.no}：測定場所</h3><p class="note">高さ表示の上に出す文字を入力します（例：道路境界、玄関前、駐車場北端）。空欄で決定すると文字を消します。</p><input id="nv" type="text" maxlength="40" autocomplete="off" value="${esc(p.note||'')}" style="font-size:18px"><div class="btns"><span class="sp"></span><button id="nc">キャンセル</button><button id="no" class="pri">決定</button></div></div>`;
+    const inp=$('#nv'),close=r=>{m.classList.remove('show');m.innerHTML='';res(r);};
+    $('#no').onclick=()=>close(inp.value.trim());
+    $('#nc').onclick=()=>close(null);
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)$('#no').click();});
+    setTimeout(()=>{inp.focus();inp.select();},60);
+  });
+}
+async function editNote(p){
+  const r=await noteDialog(p);
+  if(r===null)return;
+  if(r===(p.note||'')){draw();return;}
+  snapshot();if(r)p.note=r;else delete p.note;S.sel=p.id;refresh();
+}
 function hitLabel(x,y){
   for(let i=LBL.length-1;i>=0;i--){const b=LBL[i];if(Math.abs(x-b.cx)<=b.bw/2+6&&Math.abs(y-b.cy)<=b.bh/2+6)return b;}
   return null;
@@ -783,7 +815,9 @@ function renderScene(ctx,dpr,v,k,live){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   drawAnno(ctx,v,k);
   for(const p of S.points) if(p.page===S.pageNo)drawLeader(ctx,p,v,k);
+  curLive=!!live;if(live)PLB.length=0;
   for(const p of S.points) if(p.page===S.pageNo)drawMarker(ctx,p,p.x*v.s+v.tx,p.y*v.s+v.ty,k);
+  curLive=false;
   ctx.restore();
 }
 function draw(){
@@ -1015,6 +1049,19 @@ cv.addEventListener('pointerdown',e=>{
   const hit=(S.mode==='write'||S.pickRef)&&!erasing?hitMarker(p.x,p.y):null;
   // 測点の上：タップで選択 → 選択中の測点はドラッグで移動 / 未選択なら手書き(指のみの場合は画面移動)
   if(hit){g={kind:'mk',id:e.pointerId,p:hit,sx:p.x,sy:p.y,moved:false,sel:hit.id===S.sel,panMode:!drawing};return;}
+  // 高さ表示（ラベル）の長押し → 測定場所の文字入力（動かせば画面移動）
+  if((S.mode==='write'||S.mode==='hand')&&!erasing&&!S.pickRef){
+    const lp0=hitPtLabel(p.x,p.y);
+    if(lp0){
+      const gg=mkPan(e.pointerId,p.x,p.y);gg.fired=false;g=gg;lp={x:p.x,y:p.y,t0:performance.now()};tickLP();
+      gg.timer=setTimeout(()=>{
+        if(g!==gg||gg.moved)return;
+        gg.fired=true;lp=null;if(navigator.vibrate)navigator.vibrate(30);draw();
+        editNote(lp0);
+      },LP_MS);
+      return;
+    }
+  }
   if(!drawing){g=mkPan(e.pointerId,p.x,p.y);return;}
   if(erasing){g={kind:'erase',id:e.pointerId,snap:false};eraseAt(p.x,p.y);return;}
   const gg={kind:'write',id:e.pointerId,sx:p.x,sy:p.y,moved:false,fired:false,stroke:null};
@@ -1037,7 +1084,7 @@ cv.addEventListener('pointermove',e=>{
   }
   if(g.id!==e.pointerId)return;
   if(g.kind==='pan'){
-    if(!g.moved&&Math.hypot(p.x-g.sx,p.y-g.sy)>=MOVE_TH)g.moved=true;
+    if(!g.moved&&Math.hypot(p.x-g.sx,p.y-g.sy)>=MOVE_TH){g.moved=true;if(g.timer)lp=null;}
     S.view.tx+=p.x-g.lx;S.view.ty+=p.y-g.ly;g.lx=p.x;g.ly=p.y;drawSoon();
   }
   else if(g.kind==='erase'){eraseAt(p.x,p.y);}
@@ -1199,11 +1246,11 @@ const stamp=()=>new Date().toISOString().slice(0,10);
 const baseName=()=>(S.siteName||S.fileName||'site').replace(/[\\/:*?"<>|]/g,'_');
 function exportCsv(){
   if(!S.points.length)return toast('測点がありません');
-  const rows=[['測点No','設置','読み値(mm)','設置基準点との差(mm)','基準点1からの高さ(mm)','KBMからの高さ(mm)','GLからの高さ(mm)','FLからの高さ(mm)','測定位置X','測定位置Y','ページ']];
+  const rows=[['測点No','測定場所','設置','読み値(mm)','設置基準点との差(mm)','基準点1からの高さ(mm)','KBMからの高さ(mm)','GLからの高さ(mm)','FLからの高さ(mm)','測定位置X','測定位置Y','ページ']];
   for(const p of [...S.points].sort((a,b)=>a.no-b.no)){
     const s=S.setups.find(z=>z.id===p.setupId);
     const rel=p.id===s.refPointId?0:s.refReading-p.reading;
-    rows.push([p.no,'設置'+(s.idx+1),p.reading,rel,CALC.elev[p.id]??'',heightIn(p.id,'kbm')??'',heightIn(p.id,'gl')??'',heightIn(p.id,'fl')??'',Math.round(p.ax),Math.round(p.ay),p.page]);
+    rows.push([p.no,'"'+String(p.note||'').replace(/"/g,'""')+'"','設置'+(s.idx+1),p.reading,rel,CALC.elev[p.id]??'',heightIn(p.id,'kbm')??'',heightIn(p.id,'gl')??'',heightIn(p.id,'fl')??'',Math.round(p.ax),Math.round(p.ay),p.page]);
   }
   const csv='\ufeff'+rows.map(r=>r.join(',')).join('\r\n');
   download(new Blob([csv],{type:'text/csv'}),`${baseName()}_高さ_${stamp()}.csv`);
@@ -1234,9 +1281,9 @@ function pdfDrawPage(n){
 }
 function pdfTablePages(){
   const pts=[...S.points].sort((a,b)=>a.no-b.no);if(!pts.length&&!S.meas.length)return [];
-  const u=unitLabel(),cols=['測点','設置','読み値(mm)',`設置基準比(${u})`,`基準点1比(${u})`];if(S.base!=='p1')cols.push(`${BASE_NAME[S.base]}比(${u})`);
+  const u=unitLabel(),cols=['測点','測定場所','設置','読み値(mm)',`設置基準比(${u})`,`基準点1比(${u})`];if(S.base!=='p1')cols.push(`${BASE_NAME[S.base]}比(${u})`);
   const rows=pts.map(p=>{const s=S.setups.find(z=>z.id===p.setupId),rel=s&&p.id===s.refPointId?0:(s?s.refReading-p.reading:0);
-    const r=[String(p.no),'設置'+(s?s.idx+1:'?'),fmtR(p.reading),fmtH(rel),fmtH(CALC.elev[p.id])];if(S.base!=='p1')r.push(fmtH(heightIn(p.id,S.base)));return r;});
+    const r=[String(p.no),p.note||'','設置'+(s?s.idx+1:'?'),fmtR(p.reading),fmtH(rel),fmtH(CALC.elev[p.id])];if(S.base!=='p1')r.push(fmtH(heightIn(p.id,S.base)));return r;});
   S.meas.forEach((q,i)=>{const d=distMM(q.a,q.b),r=['距離'+(i+1),q.page+'頁',fmtMM(d),fmtM(d),''];while(r.length<cols.length)r.push('');rows.push(r);});
   const cw=2480,ch=1754,m=50,hd=70,rh=64,per=Math.floor((ch-2*m-hd-rh)/rh),out=[];
   for(let o=0;o<rows.length;o+=per){
