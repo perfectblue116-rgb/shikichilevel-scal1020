@@ -93,12 +93,20 @@ details.set select,details.set input[type=range]{flex:1}
 .box .cl label.off{color:#999}
 #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:30;max-width:90vw;text-align:center}
 #toast.show{opacity:1}
+#drw{position:fixed;inset:0;z-index:15;background:var(--bg);display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
+#drw[hidden]{display:none}
+#dBar{display:flex;gap:6px;padding:6px 8px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap;align-items:center;flex:0 0 auto}
+#dBar select{font:inherit;padding:6px 6px;border:1px solid #b9c0c8;border-radius:7px;background:#fff;color:#1c2127}
+#dWrap{flex:1;position:relative;min-height:0;background:#cfd5dc;overflow:hidden}
+#dCv{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none;display:block}
+#dHint{position:absolute;left:10px;bottom:12px;max-width:calc(100% - 20px);background:rgba(21,101,192,.93);color:#fff;padding:8px 12px;border-radius:8px;font-size:12.5px;line-height:1.6;pointer-events:none}
 </style>
 </head>
 <body>
 <div id="bar">
   <button id="bSite" class="pri">🏗 <span id="siteName">—</span></button>
   <button id="bOpen">📂 図面を開く</button>
+  <button id="bDraw" title="図面がない現場：手書きで作図してPDFに変換します">✏️ 手書き図面</button>
   <span class="grp"><button id="bPrev">◀</button><span id="pgl">-</span><button id="bNext">▶</button></span>
   <span class="grp" id="modes">
     <button data-mode="write" class="on">📍 測点</button>
@@ -126,6 +134,33 @@ details.set select,details.set input[type=range]{flex:1}
 <div id="main">
   <div id="wrap"><canvas id="cv"></canvas><div id="hud"></div><button id="pTab" type="button">📋 測点表を表示</button></div>
   <aside id="panel"><div id="phead"><b>📋 測点表</b><button id="pClose" type="button">✕ 閉じる</button></div><div id="pbody"></div></aside>
+</div>
+<div id="drw" hidden>
+  <div id="dBar">
+    <button id="dClose">✕ 閉じる</button>
+    <span class="grp"><select id="dPaper" title="用紙"><option value="a3l">A3 横</option><option value="a3p">A3 縦</option><option value="a4l">A4 横</option><option value="a4p">A4 縦</option></select></span>
+    <span class="grp" id="dTools">
+      <button data-t="pen" class="on">✏️ ペン</button>
+      <button data-t="line">╱ 直線</button>
+      <button data-t="rect">▭ 四角</button>
+      <button data-t="text">Ａ 文字</button>
+      <button data-t="erase">🧽 消す</button>
+      <button data-t="sel">⬚ 範囲選択</button>
+      <button data-t="hand">🖐 移動</button>
+    </span>
+    <span class="grp" id="dCols"></span>
+    <span class="grp">
+      <select id="dW" title="線の太さ"><option value="0.25">線 0.25mm</option><option value="0.35">線 0.35mm</option><option value="0.5">線 0.5mm</option><option value="0.7">線 0.7mm</option><option value="1">線 1mm</option><option value="1.5">線 1.5mm</option><option value="2.5">線 2.5mm</option></select>
+      <button id="dDash" title="破線（境界線など）">┄ 破線</button>
+      <button id="dAuto" class="on" title="ペンで描いた線を自動で直線・水平垂直に整えます（曲線や文字を手書きしたいときはOFF）">📐 自動直線</button>
+      <select id="dSize" title="文字の大きさ"><option value="5">文字 小</option><option value="8">文字 中</option><option value="12">文字 大</option><option value="18">文字 特大</option></select>
+    </span>
+    <span class="grp"><button id="dUndo">↶</button><button id="dRedo">↷</button><button id="dFit">全体</button><button id="dGrid" class="on">方眼</button><button id="dFinger" title="ONにすると指でも描けます（Apple Pencilなどペン使用時はOFF推奨）">☝ 指で描く</button></span>
+    <button id="dDelSel" class="danger" style="display:none">🗑 選択を削除</button>
+    <button id="dClear" class="danger">🗑 全消去</button>
+    <button id="dConv" class="acc">📄 PDFに変換して測定へ</button>
+  </div>
+  <div id="dWrap"><canvas id="dCv"></canvas><div id="dHint">ペン（マウス）で敷地のアウトラインや建物・道路を手書きします。<br>指で描く場合は「☝ 指で描く」をON。2本指で拡大・移動できます。<br>描き終えたら「📄 PDFに変換して測定へ」を押すと、PDF図面と同じようにレベル測定できます。</div></div>
 </div>
 <div id="modal"></div>
 <div id="toast"></div>
@@ -272,12 +307,13 @@ async function openSiteManager(){
       const sd=await DB.get('sd:'+id),sf=await DB.get('sf:'+id);
       const n2=await createSite(meta.name+'（コピー）');
       if(sd)await DB.set('sd:'+n2,sd);if(sf)await DB.set('sf:'+n2,sf);
+      {const dr=await DB.get('dr:'+id);if(dr)await DB.set('dr:'+n2,dr);}
       Object.assign(siteMeta(n2),{fileName:meta.fileName,fileSize:meta.fileSize,dataSize:meta.dataSize,pts:meta.pts,strokes:meta.strokes,setups:meta.setups});
       await saveSites();render();toast('複製しました');
     }else if(a==='del'){
       if(!confirm(`現場「${meta.name}」を削除します。\n図面・測点・手書きがすべて消え、元に戻せません。よろしいですか？`))return;
       clearTimeout(saveTimer);const wasCur=id===S.siteId;if(wasCur)S.siteId=null;
-      await DB.del('sd:'+id);await DB.del('sf:'+id);SITES=SITES.filter(s=>s.id!==id);await saveSites();
+      await DB.del('sd:'+id);await DB.del('sf:'+id);await DB.del('dr:'+id);SITES=SITES.filter(s=>s.id!==id);await saveSites();
       if(wasCur){closeModal();await reselect(null);}else render();
     }
   };
@@ -316,7 +352,7 @@ async function openCleanup(fromMgr){
     clearTimeout(saveTimer);const curId=S.siteId;S.siteId=null;
     for(const o of ops){
       const meta=siteMeta(o.id);
-      if(o.site){await DB.del('sf:'+o.id);await DB.del('sd:'+o.id);SITES=SITES.filter(s=>s.id!==o.id);}
+      if(o.site){await DB.del('sf:'+o.id);await DB.del('sd:'+o.id);await DB.del('dr:'+o.id);SITES=SITES.filter(s=>s.id!==o.id);}
       else if(meta){
         if(o.file){await DB.del('sf:'+o.id);meta.fileSize=0;}
         if(o.data){await DB.set('sd:'+o.id,{pageNo:1,data:EMPTY_DATA()});meta.pts=0;meta.strokes=0;meta.setups=0;meta.dataSize=0;}
@@ -825,7 +861,7 @@ function draw(){
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#dfe3e8';ctx.fillRect(0,0,cv.width,cv.height);
   if(!S.bg){
     ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#7a828c';ctx.font='18px sans-serif';ctx.textAlign='center';
-    ctx.fillText('「図面を開く」からPDF配置図を読み込んでください',cv.width/dpr/2,cv.height/dpr/2);return;
+    ctx.fillText('「図面を開く」からPDF配置図を読み込んでください',cv.width/dpr/2,cv.height/dpr/2-14);ctx.font='15px sans-serif';ctx.fillText('図面がない現場は「✏️ 手書き図面」で作図してPDF化できます',cv.width/dpr/2,cv.height/dpr/2+16);return;
   }
   renderScene(ctx,dpr,S.view,1,true);
   drawPreview(ctx,dpr);
@@ -1222,12 +1258,12 @@ async function showPage(n){
   }
   S.W=S.bg.width;S.H=S.bg.height;S.pageNo=n;S.tmp=null;S.hover=null;fitView();refresh();scheduleHi();
 }
-async function openFile(f){
-  if(!f)return;
-  if(!S.siteId){toast('現場が選択されていません');return;}
+async function openFile(f,skipConfirm){
+  if(!f)return false;
+  if(!S.siteId){toast('現場が選択されていません');return false;}
   const hasData=S.points.length||S.strokes.length;
   const replacing=!!S.bg&&!!hasData;
-  if(replacing&&!confirm('この現場の図面を差し替えます。測点・手書きデータは消去されます。\nよろしいですか？\n（別の図面は「現場管理」で新しい現場を作ると別々に保存できます）'))return;
+  if(replacing&&!skipConfirm&&!confirm('この現場の図面を差し替えます。測点・手書きデータは消去されます。\nよろしいですか？\n（別の図面は「現場管理」で新しい現場を作ると別々に保存できます）'))return false;
   const old={bytes:S.bytes,kind:S.kind,mime:S.mime,fileName:S.fileName,pdfDoc:S.pdfDoc,imgCanvas:S.imgCanvas,numPages:S.numPages};
   try{
     S.bytes=await f.arrayBuffer();S.fileName=f.name;S.mime=f.type;
@@ -1237,7 +1273,8 @@ async function openFile(f){
     await DB.set('sf:'+S.siteId,{bytes:S.bytes,kind:S.kind,mime:S.mime,fileName:S.fileName});
     await showPage(Math.min(hasData&&!replacing?S.pageNo:1,S.numPages||1));
     toast(hasData&&!replacing?'図面を読み込み、保存済みの測点を復元しました':'図面を読み込みました。ペンで長押しして基準点1(±0)を設定します');
-  }catch(err){Object.assign(S,old);alert('図面を読み込めませんでした：'+err.message);}
+    return true;
+  }catch(err){Object.assign(S,old);toast('図面を読み込めませんでした：'+err.message);if(!skipConfirm)alert('図面を読み込めませんでした：'+err.message);return false;}
 }
 
 /* ---------- 出力・保存 ---------- */
@@ -1483,7 +1520,7 @@ document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.data
 $('#bOrtho').onclick=()=>{S.orthoAuto=!S.orthoAuto;syncBar();scheduleSave();toast(S.orthoAuto?'水平垂直の自動補正：ON（Shiftでも固定できます）':'水平垂直の自動補正：OFF（Shift固定は使えます）');};
 $('#bSnap').onclick=()=>{S.snapOn=!S.snapOn;S.hover=null;syncBar();scheduleSave();draw();};
 document.addEventListener('keydown',e=>{
-  if($('#modal').classList.contains('show'))return;
+  if($('#modal').classList.contains('show')||DRW.open)return;
   if(S.selA!==null&&(e.key==='Delete'||e.key==='Backspace')){e.preventDefault();delAnno();return;}
   if(e.key==='Escape'&&S.tmp){S.tmp=null;updateHud();draw();return;}
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();}
@@ -1491,6 +1528,398 @@ document.addEventListener('keydown',e=>{
 new ResizeObserver(resize).observe(wrap);
 if(innerWidth<900)$('#panel').classList.add('closed');
 syncPanelUi();
+
+/* ---------- 手書き作図 → PDF変換 ---------- */
+// 図面がない現場用：用紙(mm)上に手書きし、ベクターPDFに変換して通常のPDF図面として読み込む
+const DRW={open:false,siteId:null,paper:'a3l',tool:'pen',color:PEN_COLORS[0],w:0.5,dash:false,size:8,grid:true,auto:true,
+  items:[],sel:[],undo:[],redo:[],view:{s:1,tx:0,ty:0},cur:null,ptrs:new Map(),gest:null,saveT:null};
+const PAPERS={a3l:[420,297],a3p:[297,420],a4l:[297,210],a4p:[210,297]};
+const DFONT='"Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif';
+const dcv=$('#dCv'),dwrap=$('#dWrap');
+const paperSz=()=>PAPERS[DRW.paper]||PAPERS.a3l;
+const mctx=document.createElement('canvas').getContext('2d');
+const dTextW=it=>{mctx.font=`${it.size*10}px ${DFONT}`;return mctx.measureText(it.s).width/10;};
+const dDashOf=it=>[Math.max(3,it.w*6),Math.max(1.6,it.w*3)];
+
+$('#dCols').innerHTML=PEN_COLORS.map(c=>`<button class="sw" data-c="${c}" style="background:${c}" title="色"></button>`).join('');
+
+const dPos=e=>{const r=dcv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};};
+const dMM=p=>({x:(p.x-DRW.view.tx)/DRW.view.s,y:(p.y-DRW.view.ty)/DRW.view.s});
+
+function dSync(){
+  document.querySelectorAll('#dTools [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===DRW.tool));
+  document.querySelectorAll('#dCols .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===DRW.color));
+  $('#dDash').classList.toggle('on',DRW.dash);$('#dAuto').classList.toggle('on',DRW.auto);$('#dGrid').classList.toggle('on',DRW.grid);$('#dFinger').classList.toggle('on',S.finger);
+  $('#dW').value=String(DRW.w);$('#dSize').value=String(DRW.size);$('#dPaper').value=DRW.paper;
+  $('#dHint').style.display=DRW.items.length?'none':'block';
+  $('#dDelSel').style.display=DRW.sel.length?'':'none';$('#dDelSel').textContent=`🗑 選択を削除（${DRW.sel.length}）`;
+  dcv.style.cursor=DRW.tool==='hand'?'grab':DRW.tool==='text'?'text':'crosshair';
+}
+function dResize(){
+  const r=dwrap.getBoundingClientRect(),dpr=devicePixelRatio||1;
+  dcv.width=Math.max(1,Math.round(r.width*dpr));dcv.height=Math.max(1,Math.round(r.height*dpr));dDraw();
+}
+function dFit(){
+  const r=dwrap.getBoundingClientRect(),[PW,PH]=paperSz();
+  const s=Math.max(0.1,Math.min((r.width-24)/PW,(r.height-24)/PH));
+  DRW.view={s,tx:(r.width-PW*s)/2,ty:(r.height-PH*s)/2};dDraw();
+}
+
+/* --- 描画 --- */
+function dPaint(ctx,it){
+  ctx.strokeStyle=it.c;ctx.fillStyle=it.c;ctx.lineWidth=it.w||0.5;ctx.lineCap='round';ctx.lineJoin='round';
+  if(it.t==='text'){
+    ctx.setLineDash([]);ctx.font=`${it.size}px ${DFONT}`;ctx.textBaseline='alphabetic';ctx.textAlign='left';ctx.fillText(it.s,it.x,it.y);return;
+  }
+  ctx.setLineDash(it.d?dDashOf(it):[]);
+  if(it.t==='pen'){
+    const P=it.pts;
+    if(P.length===1){ctx.setLineDash([]);ctx.beginPath();ctx.arc(P[0][0],P[0][1],it.w/2,0,Math.PI*2);ctx.fill();return;}
+    ctx.beginPath();ctx.moveTo(P[0][0],P[0][1]);for(let i=1;i<P.length;i++)ctx.lineTo(P[i][0],P[i][1]);ctx.stroke();
+  }else if(it.t==='line'){
+    ctx.beginPath();ctx.moveTo(it.a.x,it.a.y);ctx.lineTo(it.b.x,it.b.y);ctx.stroke();
+  }else if(it.t==='rect'){
+    ctx.strokeRect(Math.min(it.a.x,it.b.x),Math.min(it.a.y,it.b.y),Math.abs(it.b.x-it.a.x),Math.abs(it.b.y-it.a.y));
+  }
+}
+function dDraw(){
+  const ctx=dcv.getContext('2d'),dpr=devicePixelRatio||1,v=DRW.view,[PW,PH]=paperSz();
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#cfd5dc';ctx.fillRect(0,0,dcv.width,dcv.height);
+  ctx.setTransform(dpr*v.s,0,0,dpr*v.s,dpr*v.tx,dpr*v.ty);
+  ctx.save();ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=10*dpr;ctx.shadowOffsetY=2*dpr;ctx.fillStyle='#fff';ctx.fillRect(0,0,PW,PH);ctx.restore();
+  if(DRW.grid){
+    const st=v.s*10>=7?10:50;ctx.lineWidth=1/v.s;
+    for(let x=0;x<=PW+0.01;x+=st){ctx.strokeStyle=x%50===0?'#c3cbd6':'#e6eaf0';ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,PH);ctx.stroke();}
+    for(let y=0;y<=PH+0.01;y+=st){ctx.strokeStyle=y%50===0?'#c3cbd6':'#e6eaf0';ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(PW,y);ctx.stroke();}
+  }
+  ctx.save();ctx.beginPath();ctx.rect(0,0,PW,PH);ctx.clip();
+  for(const it of DRW.items)dPaint(ctx,it);
+  if(DRW.cur&&DRW.cur.t!=='erase'&&DRW.cur.t!=='sel')dPaint(ctx,DRW.cur);
+  ctx.restore();
+  // 選択中の図形と選択枠
+  ctx.save();ctx.lineWidth=1.5/v.s;ctx.setLineDash([5/v.s,3/v.s]);ctx.strokeStyle='#ef6c00';
+  for(const it of DRW.sel){const b=dBox(it),pd=1.2;ctx.strokeRect(b.x0-pd,b.y0-pd,b.x1-b.x0+pd*2,b.y1-b.y0+pd*2);}
+  const c=DRW.cur;
+  if(c&&c.t==='sel'){ctx.strokeStyle='#1565c0';ctx.fillStyle='rgba(21,101,192,.10)';const x=Math.min(c.a.x,c.b.x),y=Math.min(c.a.y,c.b.y),w=Math.abs(c.b.x-c.a.x),h=Math.abs(c.b.y-c.a.y);ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);}
+  ctx.restore();
+  ctx.strokeStyle='#9aa5b1';ctx.lineWidth=1/v.s;ctx.strokeRect(0,0,PW,PH);
+}
+
+/* --- 履歴・保存 --- */
+function dSnap(){DRW.undo.push(JSON.stringify(DRW.items));if(DRW.undo.length>100)DRW.undo.shift();DRW.redo=[];}
+function dChanged(){DRW.sel=[];dDraw();dSync();dSave();}
+function dUndo(){if(!DRW.undo.length)return toast('これ以上戻せません');DRW.redo.push(JSON.stringify(DRW.items));DRW.items=JSON.parse(DRW.undo.pop());dChanged();}
+function dRedo(){if(!DRW.redo.length)return;DRW.undo.push(JSON.stringify(DRW.items));DRW.items=JSON.parse(DRW.redo.pop());dChanged();}
+function dSave(){clearTimeout(DRW.saveT);DRW.saveT=setTimeout(dFlush,400);}
+async function dFlush(){
+  clearTimeout(DRW.saveT);if(!DRW.siteId)return;
+  try{await DB.set('dr:'+DRW.siteId,{paper:DRW.paper,items:DRW.items});}catch(e){console.warn(e);}
+}
+
+/* --- 消しゴム用の当たり判定 --- */
+function dSeg(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;let t=l?((px-ax)*dx+(py-ay)*dy)/l:0;t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+}
+function dHit(it,m,r){
+  const q=r+(it.w||0)/2;
+  if(it.t==='pen'){
+    const P=it.pts;if(P.length===1)return Math.hypot(m.x-P[0][0],m.y-P[0][1])<=q;
+    for(let i=1;i<P.length;i++)if(dSeg(m.x,m.y,P[i-1][0],P[i-1][1],P[i][0],P[i][1])<=q)return true;return false;
+  }
+  if(it.t==='line')return dSeg(m.x,m.y,it.a.x,it.a.y,it.b.x,it.b.y)<=q;
+  if(it.t==='rect'){
+    const x0=Math.min(it.a.x,it.b.x),x1=Math.max(it.a.x,it.b.x),y0=Math.min(it.a.y,it.b.y),y1=Math.max(it.a.y,it.b.y);
+    return dSeg(m.x,m.y,x0,y0,x1,y0)<=q||dSeg(m.x,m.y,x1,y0,x1,y1)<=q||dSeg(m.x,m.y,x1,y1,x0,y1)<=q||dSeg(m.x,m.y,x0,y1,x0,y0)<=q;
+  }
+  if(it.t==='text'){const w=dTextW(it);return m.x>=it.x-q&&m.x<=it.x+w+q&&m.y>=it.y-it.size-q&&m.y<=it.y+it.size*0.3+q;}
+  return false;
+}
+// 消しゴム：消しゴムの円に重なる部分だけを切り取り、残りは別の線として残す
+function dCut(it,m,r){
+  let P;
+  if(it.t==='pen')P=it.pts;
+  else if(it.t==='line')P=[[it.a.x,it.a.y],[it.b.x,it.b.y]];
+  else if(it.t==='rect'){const x0=Math.min(it.a.x,it.b.x),x1=Math.max(it.a.x,it.b.x),y0=Math.min(it.a.y,it.b.y),y1=Math.max(it.a.y,it.b.y);P=[[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]];}
+  else return null;
+  if(P.length===1)return Math.hypot(m.x-P[0][0],m.y-P[0][1])<=r+it.w/2?[]:null;
+  let touched=false;
+  for(let i=1;i<P.length&&!touched;i++)if(dSeg(m.x,m.y,P[i-1][0],P[i-1][1],P[i][0],P[i][1])<=r)touched=true;
+  if(!touched)return null;
+  const out=[];let cur=Math.hypot(P[0][0]-m.x,P[0][1]-m.y)<r?[]:[P[0].slice()];
+  for(let i=1;i<P.length;i++){
+    const A=P[i-1],B=P[i],dx=B[0]-A[0],dy=B[1]-A[1],fx=A[0]-m.x,fy=A[1]-m.y;
+    const a=dx*dx+dy*dy,b=2*(fx*dx+fy*dy),c=fx*fx+fy*fy-r*r;
+    let t1=1,t2=0,hit=false;
+    if(a>1e-12){const disc=b*b-4*a*c;if(disc>0){const sq=Math.sqrt(disc);t1=(-b-sq)/(2*a);t2=(-b+sq)/(2*a);hit=t1<1&&t2>0;}}
+    if(!hit){if(cur.length)cur.push(B.slice());else cur=[A.slice(),B.slice()];continue;}
+    if(t1>0){cur.push([A[0]+dx*t1,A[1]+dy*t1]);}
+    if(cur.length>=2)out.push(cur);
+    cur=[];
+    if(t2<1)cur=[[A[0]+dx*t2,A[1]+dy*t2],B.slice()];
+  }
+  if(cur.length>=2)out.push(cur);
+  return out.map(pts=>({t:'pen',c:it.c,w:it.w,d:it.d,pts}));
+}
+function dErase(m,c){
+  const r=Math.max(1.5,9/DRW.view.s);let hit=false;
+  for(let i=DRW.items.length-1;i>=0;i--){
+    const it=DRW.items[i];let res=null;
+    if(it.t==='text')res=dHit(it,m,r)?[]:null;else res=dCut(it,m,r);
+    if(res===null)continue;
+    if(!c.snapped){dSnap();c.snapped=true;}
+    DRW.items.splice(i,1,...res);hit=true;
+  }
+  return hit;
+}
+// 直線の終点：Shift（またはタッチ・ペンで、ほぼ水平垂直のとき）で水平・垂直に固定
+function dOrtho(a,m,shift,auto){
+  const dx=m.x-a.x,dy=m.y-a.y;if(Math.hypot(dx,dy)<1e-6)return m;
+  const horiz=Math.abs(dx)>=Math.abs(dy),along=horiz?Math.abs(dx):Math.abs(dy),off=horiz?Math.abs(dy):Math.abs(dx);
+  const near=Math.atan2(off,along)<0.087||off*DRW.view.s<8;
+  if(shift||(DRW.auto&&Math.atan2(off,along)<0.44)||(auto&&S.orthoAuto&&near))return{x:horiz?m.x:a.x,y:horiz?a.y:m.y};
+  return m;
+}
+
+/* --- ポインタ操作（ペン・マウス＝描く／指＝拡大移動、「指で描く」ONなら指も描く） --- */
+function dGestInit(){
+  const a=[...DRW.ptrs.values()];
+  if(a.length>=2){const[p,q]=a;DRW.gest={k:'pz',d:Math.hypot(p.x-q.x,p.y-q.y)||1,mx:(p.x+q.x)/2,my:(p.y+q.y)/2,v:{...DRW.view}};}
+  else if(a.length===1)DRW.gest={k:'pan',x:a[0].x,y:a[0].y,v:{...DRW.view}};
+  else DRW.gest=null;
+}
+function dGestMove(){
+  const g=DRW.gest;if(!g)return;const a=[...DRW.ptrs.values()],v=g.v;
+  if(g.k==='pz'&&a.length>=2){
+    const[p,q]=a,d=Math.hypot(p.x-q.x,p.y-q.y)||1,mx=(p.x+q.x)/2,my=(p.y+q.y)/2;
+    const s=Math.min(30,Math.max(0.3,v.s*d/g.d)),f=s/v.s;
+    DRW.view={s,tx:mx-(g.mx-v.tx)*f,ty:my-(g.my-v.ty)*f};
+  }else if(g.k==='pan'&&a.length===1){
+    DRW.view={s:v.s,tx:v.tx+a[0].x-g.x,ty:v.ty+a[0].y-g.y};
+  }
+  dDraw();
+}
+function dStart(e,p){
+  const m=dMM(p),t=DRW.tool;
+  if(t==='text'){dAddText(m);return;}
+  const meta={pid:e.pointerId,pType:e.pointerType,last:p};
+  if(t==='sel'){DRW.sel=[];DRW.cur={t:'sel',a:m,b:m,...meta};dSync();dDraw();return;}
+  if(t==='erase'){DRW.cur={t:'erase',snapped:false,lm:m,...meta};if(dErase(m,DRW.cur))dChanged();return;}
+  const base={c:DRW.color,w:DRW.w,d:DRW.dash};
+  DRW.cur=t==='pen'?{...base,t:'pen',pts:[[m.x,m.y]],...meta}:{...base,t,a:m,b:m,...meta};
+  dDraw();
+}
+function dMove(e,p){
+  const c=DRW.cur;c.last=p;
+  if(c.t==='erase'){const m=dMM(p),L=c.lm||m,step=Math.max(1,Math.max(1.5,9/DRW.view.s)*0.7),n=Math.max(1,Math.ceil(Math.hypot(m.x-L.x,m.y-L.y)/step));let h=false;for(let k=1;k<=n;k++)h=dErase({x:L.x+(m.x-L.x)*k/n,y:L.y+(m.y-L.y)*k/n},c)||h;c.lm=m;if(h)dChanged();return;}
+  if(c.t==='pen'){
+    const evs=(e.getCoalescedEvents&&e.getCoalescedEvents())||[];const list=evs.length?evs:[e],minD=1.2/DRW.view.s;
+    for(const ev of list){
+      const m=dMM(dPos(ev)),l=c.pts[c.pts.length-1];
+      if(Math.hypot(m.x-l[0],m.y-l[1])>=minD)c.pts.push([m.x,m.y]);
+    }
+  }else{
+    const m=dMM(p);
+    c.b=c.t==='line'?dOrtho(c.a,m,e.shiftKey,e.pointerType!=='mouse'):m;
+  }
+  dDraw();
+}
+/* --- 手書き線の自動直線化：折れ点を抽出→ほぼ水平/垂直は軸に揃える→始終点が近ければ閉じる --- */
+function dRdp(P,eps){
+  if(P.length<3)return P.slice();
+  const a=P[0],b=P[P.length-1];let md=-1,mi=0;
+  for(let i=1;i<P.length-1;i++){const d=dSeg(P[i][0],P[i][1],a[0],a[1],b[0],b[1]);if(d>md){md=d;mi=i;}}
+  if(md<=eps)return[a,b];
+  return dRdp(P.slice(0,mi+1),eps).slice(0,-1).concat(dRdp(P.slice(mi),eps));
+}
+function dStraight(pts){
+  if(pts.length<3)return pts;
+  let len=0;for(let i=1;i<pts.length;i++)len+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+  if(len<4)return pts;
+  const eps=Math.max(1,6/DRW.view.s);
+  let P=dRdp(pts,eps).map(q=>[q[0],q[1]]);
+  if(P.length<2)return pts;
+  const closed=P.length>=4&&Math.hypot(P[0][0]-P[P.length-1][0],P[0][1]-P[P.length-1][1])<Math.max(6,len*0.04);
+  if(closed)P[P.length-1]=[P[0][0],P[0][1]];
+  const TH=Math.tan(25*Math.PI/180); // 軸から25°以内なら水平・垂直に揃える
+  for(let i=0;i<P.length-1;i++){
+    const a=P[i],b=P[i+1],dx=b[0]-a[0],dy=b[1]-a[1];
+    if(Math.abs(dy)<=Math.abs(dx)*TH)b[1]=a[1];       // 水平
+    else if(Math.abs(dx)<=Math.abs(dy)*TH)b[0]=a[0];  // 垂直
+  }
+  if(closed){ // 閉じた図形：最後の点を始点に合わせ直す
+    const f=P[0],l=P[P.length-1];l[0]=f[0];l[1]=f[1];
+  }
+  return P;
+}
+function dBox(it){
+  if(it.t==='pen'){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of it.pts){x0=Math.min(x0,q[0]);x1=Math.max(x1,q[0]);y0=Math.min(y0,q[1]);y1=Math.max(y1,q[1]);}return{x0,y0,x1,y1};}
+  if(it.t==='text')return{x0:it.x,y0:it.y-it.size,x1:it.x+dTextW(it),y1:it.y+it.size*0.3};
+  return{x0:Math.min(it.a.x,it.b.x),y0:Math.min(it.a.y,it.b.y),x1:Math.max(it.a.x,it.b.x),y1:Math.max(it.a.y,it.b.y)};
+}
+function dSelect(c){
+  const x0=Math.min(c.a.x,c.b.x),x1=Math.max(c.a.x,c.b.x),y0=Math.min(c.a.y,c.b.y),y1=Math.max(c.a.y,c.b.y);
+  if(x1-x0<1&&y1-y0<1){ // タップ：一番上の図形を1つ選択
+    const r=Math.max(1.5,9/DRW.view.s);DRW.sel=[];
+    for(let i=DRW.items.length-1;i>=0;i--)if(dHit(DRW.items[i],c.a,r)){DRW.sel=[DRW.items[i]];break;}
+  }else{ // 枠に触れた図形をすべて選択
+    DRW.sel=DRW.items.filter(it=>{const b=dBox(it);return b.x1>=x0&&b.x0<=x1&&b.y1>=y0&&b.y0<=y1;});
+  }
+  dDraw();dSync();
+}
+function dDelSel(){
+  if(!DRW.sel.length)return toast('削除する図形を範囲選択してください');
+  const set=new Set(DRW.sel);dSnap();DRW.items=DRW.items.filter(it=>!set.has(it));dChanged();
+}
+function dEnd(){
+  const c=DRW.cur;DRW.cur=null;if(!c)return;
+  if(c.t==='erase'){dDraw();return;}
+  if(c.t==='sel'){dSelect(c);return;}
+  let it;
+  if(c.t==='pen')it={t:'pen',c:c.c,w:c.w,d:c.d,pts:DRW.auto?dStraight(c.pts):c.pts};
+  else{
+    if(Math.hypot(c.b.x-c.a.x,c.b.y-c.a.y)<0.8){dDraw();return;}
+    it={t:c.t,c:c.c,w:c.w,d:c.d,a:c.a,b:c.b};
+  }
+  dSnap();DRW.items.push(it);dChanged();
+}
+async function dAddText(m){
+  const s=await askText({title:'文字を入力',note:'図面に書き込む文字を入力してください（例：道路、隣地境界、建物、玄関）',value:''});
+  closeModal();
+  if(!s)return;
+  if(s.length>60){toast('文字数が多すぎます（60文字まで）');return;}
+  const size=DRW.size;
+  dSnap();DRW.items.push({t:'text',c:DRW.color,size,x:m.x,y:m.y+size*0.35,s});dChanged();
+}
+
+dcv.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button>1)return;
+  e.preventDefault();
+  const p=dPos(e);
+  if(e.pointerType==='pen'){DRW.ptrs.clear();DRW.gest=null;}
+  if(DRW.cur&&DRW.cur.pid!==e.pointerId){
+    if(e.pointerType==='touch'&&DRW.cur.pType==='touch'){DRW.ptrs.set(DRW.cur.pid,DRW.cur.last);DRW.cur=null;} // 指で描き始めた直後に2本目 → 拡大移動へ
+    else return; // ペンで描画中の手のひら接触などは無視
+  }
+  const drawable=DRW.tool!=='hand'&&e.button===0&&!DRW.ptrs.size&&(e.pointerType!=='touch'||S.finger);
+  try{dcv.setPointerCapture(e.pointerId);}catch(_){}
+  if(drawable){dStart(e,p);return;}
+  if(e.pointerType==='touch'||e.button===1||DRW.tool==='hand'){DRW.ptrs.set(e.pointerId,p);dGestInit();}
+});
+dcv.addEventListener('pointermove',e=>{
+  const p=dPos(e);
+  if(DRW.cur&&DRW.cur.pid===e.pointerId){dMove(e,p);return;}
+  if(DRW.ptrs.has(e.pointerId)){DRW.ptrs.set(e.pointerId,p);dGestMove();}
+});
+const dUp=e=>{
+  if(DRW.cur&&DRW.cur.pid===e.pointerId){if(e.type==='pointercancel'){DRW.cur=null;dDraw();}else dEnd();return;}
+  if(DRW.ptrs.has(e.pointerId)){DRW.ptrs.delete(e.pointerId);dGestInit();}
+};
+dcv.addEventListener('pointerup',dUp);dcv.addEventListener('pointercancel',dUp);
+dcv.addEventListener('contextmenu',e=>e.preventDefault());
+dcv.addEventListener('wheel',e=>{
+  e.preventDefault();const p=dPos(e),v=DRW.view;
+  const s=Math.min(30,Math.max(0.3,v.s*Math.exp(-e.deltaY*(e.ctrlKey?0.02:0.0025)))),k=s/v.s;
+  DRW.view={s,tx:p.x-(p.x-v.tx)*k,ty:p.y-(p.y-v.ty)*k};dDraw();
+},{passive:false});
+
+/* --- PDF生成（線・四角はベクター、日本語の文字は透過PNGで貼る） --- */
+function dTextPng(it){
+  const K=12,c=document.createElement('canvas'),x=c.getContext('2d'),f=`${it.size*K}px ${DFONT}`;
+  x.font=f;const w=Math.ceil(x.measureText(it.s).width)+8,h=Math.ceil(it.size*K*1.45);
+  c.width=w;c.height=h;x.font=f;x.fillStyle=it.c;x.textBaseline='alphabetic';x.fillText(it.s,4,it.size*K*1.1);
+  return{url:c.toDataURL('image/png'),w:w/K,h:h/K,ox:4/K,asc:it.size*1.1};
+}
+async function dMakePdf(){
+  await loadJsPdf();const{jsPDF}=window.jspdf;
+  const[PW,PH]=paperSz();
+  const doc=new jsPDF({orientation:PW>=PH?'l':'p',unit:'mm',format:DRW.paper.startsWith('a3')?'a3':'a4'});
+  doc.setLineCap('round');doc.setLineJoin('round');
+  for(const it of DRW.items){
+    if(it.t==='text'){const t=dTextPng(it);doc.addImage(t.url,'PNG',it.x-t.ox,it.y-t.asc,t.w,t.h);continue;}
+    doc.setDrawColor(it.c);doc.setFillColor(it.c);doc.setLineWidth(it.w);
+    if(it.d){const[a,b]=dDashOf(it);doc.setLineDashPattern([a,b],0);}else doc.setLineDashPattern([],0);
+    if(it.t==='pen'){
+      const P=it.pts;
+      if(P.length<2){doc.setLineDashPattern([],0);doc.circle(P[0][0],P[0][1],it.w/2,'F');}
+      else{const rel=[];for(let i=1;i<P.length;i++)rel.push([P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]]);doc.lines(rel,P[0][0],P[0][1],[1,1],'S',false);}
+    }else if(it.t==='line'){
+      doc.line(it.a.x,it.a.y,it.b.x,it.b.y);
+    }else if(it.t==='rect'){
+      doc.rect(Math.min(it.a.x,it.b.x),Math.min(it.a.y,it.b.y),Math.abs(it.b.x-it.a.x),Math.abs(it.b.y-it.a.y),'S');
+    }
+  }
+  doc.setLineDashPattern([],0);
+  return doc.output('arraybuffer');
+}
+async function dMakePng(){
+  const[PW,PH]=paperSz(),k=3990/Math.max(PW,PH),c=document.createElement('canvas');
+  c.width=Math.round(PW*k);c.height=Math.round(PH*k);
+  const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.scale(k,k);
+  for(const it of DRW.items)dPaint(x,it);
+  return await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('画像を作成できません')),'image/png'));
+}
+async function dConvert(){
+  if(!DRW.items.length)return toast('先に手書きで図面を描いてください');
+  if((S.points.length||S.strokes.length)&&!confirm('この現場の図面を手書き図面に差し替えます。測点・手書きデータは消去されます。\nよろしいですか？'))return;
+  toast('PDFを作成中…');
+  await dFlush();
+  let ok=false,why='',asImg=false;
+  try{const ab=await dMakePdf();ok=await openFile(new File([ab],`手書き図面_${stamp()}.pdf`,{type:'application/pdf'}),true);}
+  catch(err){why=err.message;}
+  if(!ok){ // PDFとして開けない環境(PDF.jsが使えない等)では高解像度画像として取り込む
+    try{const b=await dMakePng();ok=await openFile(new File([b],`手書き図面_${stamp()}.png`,{type:'image/png'}),true);asImg=ok;}
+    catch(err){why=why||err.message;}
+  }
+  if(ok){
+    dClose();setMode('write');
+    toast(asImg?'手書き図面を取り込みました（この環境ではPDFでなく高解像度画像）。ペンで長押しして基準点1(±0)を設定します':'手書き図面をPDF化しました。必要なら「📏 縮尺」を設定し、ペンで長押しして基準点1(±0)を設定します');
+  }else toast('変換に失敗しました：'+(why||'不明なエラー'));
+}
+
+/* --- 開く・閉じる --- */
+async function dOpen(){
+  if(!S.siteId)return toast('現場が選択されていません');
+  await flushSave();
+  DRW.siteId=S.siteId;
+  let d=null;try{d=await DB.get('dr:'+S.siteId);}catch(_){}
+  DRW.items=(d&&Array.isArray(d.items))?d.items:[];
+  DRW.paper=(d&&PAPERS[d.paper])?d.paper:'a3l';
+  DRW.undo=[];DRW.redo=[];DRW.cur=null;DRW.ptrs.clear();DRW.gest=null;DRW.open=true;
+  $('#drw').hidden=false;dSync();dResize();dFit();
+}
+function dClose(){
+  dFlush();DRW.open=false;DRW.cur=null;$('#drw').hidden=true;
+  resize();
+}
+$('#bDraw').onclick=dOpen;
+$('#dClose').onclick=dClose;
+$('#dConv').onclick=dConvert;
+document.querySelectorAll('#dTools [data-t]').forEach(b=>b.onclick=()=>{DRW.tool=b.dataset.t;dSync();});
+$('#dCols').onclick=e=>{const b=e.target.closest('.sw');if(!b)return;DRW.color=b.dataset.c;dSync();};
+$('#dW').onchange=e=>{DRW.w=parseFloat(e.target.value)||0.5;};
+$('#dSize').onchange=e=>{DRW.size=parseFloat(e.target.value)||8;};
+$('#dDash').onclick=()=>{DRW.dash=!DRW.dash;dSync();};
+$('#dAuto').onclick=()=>{DRW.auto=!DRW.auto;dSync();toast(DRW.auto?'自動直線：ON（手書きの線を直線・水平垂直に整えます）':'自動直線：OFF（そのまま手書きします）');};
+$('#dGrid').onclick=()=>{DRW.grid=!DRW.grid;dSync();dDraw();};
+$('#dFinger').onclick=()=>{S.finger=!S.finger;dSync();scheduleSave();toast(S.finger?'指でも描けます（2本指で拡大・移動）':'指は拡大・移動のみ（ペン・マウスで描きます）');};
+$('#dPaper').onchange=e=>{if(PAPERS[e.target.value]){DRW.paper=e.target.value;dFit();dSave();}};
+$('#dUndo').onclick=dUndo;$('#dRedo').onclick=dRedo;$('#dFit').onclick=dFit;
+$('#dDelSel').onclick=dDelSel;
+$('#dClear').onclick=()=>{
+  if(!DRW.items.length)return;
+  if(!confirm('手書きした内容をすべて消去します。\nよろしいですか？（「↶」で元に戻せます）'))return;
+  dSnap();DRW.items=[];dChanged();
+};
+document.addEventListener('keydown',e=>{
+  if(!DRW.open||$('#modal').classList.contains('show'))return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?dRedo():dUndo();}
+  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'){e.preventDefault();DRW.tool='sel';DRW.sel=[...DRW.items];dSync();dDraw();}
+  else if((e.key==='Delete'||e.key==='Backspace')&&DRW.sel.length){e.preventDefault();dDelSel();}
+  else if(e.key==='Escape'){if(DRW.cur)DRW.cur=null;DRW.sel=[];dSync();dDraw();}
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&DRW.open)dFlush();});
+new ResizeObserver(()=>{if(DRW.open)dResize();}).observe(dwrap);
 
 /* ---------- 起動 ---------- */
 (async()=>{
