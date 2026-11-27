@@ -511,6 +511,7 @@ function drawStroke(ctx,st){
 function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 // PDF(A3)出力で図面1px分が占める、ラベル用スケール（PNG・画面のPDF同寸表示も同じ値を使う）
 function kOut(){const land=S.W>=S.H,cw=land?2480:1754,ch=land?1754:2480,aw=cw-100,ah=ch-100-70,sc=Math.min(aw/S.W,ah/S.H);return (cw/1100)/sc;}
+let OUTBG=null,PQ=1.6; // OUTBG:出力用の高解像度背景 / PQ:出力解像度倍率（A3で約240dpi。iOSのcanvas上限を超えない値）
 let OUT=false,WYSL=false; // OUT:出力描画中 / WYSL:画面でPDF同寸表示中
  // true: PDF/PNG/印刷の出力描画中
 function drawMarker(ctx,p,x,y,k){
@@ -919,7 +920,7 @@ function renderScene(ctx,dpr,v,k,live){
   ctx.save();
   ctx.setTransform(dpr*v.s,0,0,dpr*v.s,dpr*v.tx,dpr*v.ty);
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality=S.gesturing?'low':'high';
-  ctx.fillStyle='#fff';ctx.fillRect(0,0,S.W,S.H);ctx.drawImage(S.bg,0,0);
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,S.W,S.H);if(!live&&OUTBG)ctx.drawImage(OUTBG,0,0,S.W,S.H);else ctx.drawImage(S.bg,0,0);
   if(live&&S.hi&&S.hi.page===S.pageNo)ctx.drawImage(S.hi.c,S.hi.x0,S.hi.y0,S.hi.w,S.hi.h);
   for(const st of S.strokes) if(st.page===S.pageNo)drawStroke(ctx,st);
   if(live&&g&&g.stroke)drawStroke(ctx,g.stroke);
@@ -1394,15 +1395,26 @@ async function loadJsPdf(){
   if(window.jspdf)return;
   await new Promise((res,rej)=>{const t=document.createElement('script');t.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';t.onload=res;t.onerror=()=>rej(new Error('PDF出力ライブラリを読み込めません。通信環境を確認してください。'));document.head.appendChild(t);});
 }
-function pdfDrawPage(n){
-  const land=S.W>=S.H,cw=land?2480:1754,ch=land?1754:2480,c=document.createElement('canvas');c.width=cw;c.height=ch;
-  const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cw,ch);
+async function pdfDrawPage(n){
+  const land=S.W>=S.H,cw=land?2480:1754,ch=land?1754:2480,c=document.createElement('canvas');c.width=Math.round(cw*PQ);c.height=Math.round(ch*PQ);
+  const x=c.getContext('2d');x.scale(PQ,PQ);x.fillStyle='#fff';x.fillRect(0,0,cw,ch);
   const m=50,hd=70,aw=cw-2*m,ah=ch-2*m-hd,sc=Math.min(aw/S.W,ah/S.H);
   const tx=m+(aw-S.W*sc)/2,ty=m+hd+(ah-S.H*sc)/2;
+  // PDF図面は出力解像度で描き直す（画面用の低解像度背景を引き伸ばさない）
+  OUTBG=null;
+  if(S.kind==='pdf'&&S.pdfDoc){
+    try{
+      const k=sc*PQ,pg=await S.pdfDoc.getPage(n),vp=pg.getViewport({scale:S.rs*k});
+      const bc=document.createElement('canvas');bc.width=Math.max(1,Math.round(vp.width));bc.height=Math.max(1,Math.round(vp.height));
+      const bx=bc.getContext('2d');bx.fillStyle='#fff';bx.fillRect(0,0,bc.width,bc.height);
+      await pg.render({canvasContext:bx,viewport:vp}).promise;
+      OUTBG=bc;
+    }catch(_){OUTBG=null;}
+  }
   x.fillStyle='#111';x.font='bold 38px sans-serif';x.textBaseline='top';x.textAlign='left';
   x.fillText(`${S.siteName||''}　測定図　${n}/${S.numPages||1}ページ　${stamp()}`,m,m);
   x.save();x.beginPath();x.rect(m,m+hd,aw,ah);x.clip();
-  renderScene(x,1,{s:sc,tx,ty},cw/1100,false);
+  try{renderScene(x,PQ,{s:sc,tx,ty},cw/1100,false);}finally{OUTBG=null;}
   x.restore();x.strokeStyle='#000';x.lineWidth=2;x.strokeRect(m,m+hd,aw,ah);
   return c;
 }
@@ -1420,7 +1432,7 @@ function pdfTableOne(fname,withMeas){
   if(withMeas)S.meas.forEach((q,i)=>{const d=distMM(q.a,q.b),r=['距離'+(i+1),q.page+'頁',fmtMM(d),fmtM(d),''];while(r.length<cols.length)r.push('');rows.push(r);});
   const cw=2480,ch=1754,m=50,hd=70,rh=64,per=Math.floor((ch-2*m-hd-rh)/rh),out=[];
   for(let o=0;o<rows.length;o+=per){
-    const c=document.createElement('canvas');c.width=cw;c.height=ch;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cw,ch);
+    const c=document.createElement('canvas');c.width=Math.round(cw*PQ);c.height=Math.round(ch*PQ);const x=c.getContext('2d');x.scale(PQ,PQ);x.fillStyle='#fff';x.fillRect(0,0,cw,ch);
     x.textBaseline='middle';x.fillStyle='#111';x.font='bold 38px sans-serif';x.textAlign='left';x.fillText(`${S.siteName||''}${fname?'　['+fname+']':''}　測点一覧（${BASE_NAME[S.base]}基準）`,m,m+30);
     const w=(cw-2*m)/cols.length;let y=m+hd;
     x.fillStyle='#e6eaf0';x.fillRect(m,y,cw-2*m,rh);x.fillStyle='#111';x.font='bold 32px sans-serif';x.textAlign='center';
@@ -1439,7 +1451,7 @@ async function buildOutCanvases(){
       const has=allPts().some(p=>p.page===n)||S.refs.some(r=>r.page===n)||S.meas.some(q=>q.page===n)||S.strokes.some(t=>t.page===n);
       if(!has&&n!==cur)continue;
       if(S.pageNo!==n)await showPage(n);
-      out.push(pdfDrawPage(n));
+      out.push(await pdfDrawPage(n));
     }
     if(S.outList!=='drawing')out.push(...pdfTablePages());
   }finally{
@@ -1455,7 +1467,7 @@ async function exportPdf(){
     await loadJsPdf();const {jsPDF}=window.jspdf;
     const cs=await buildOutCanvases();
     let doc=null;
-    for(const c of cs){const o=c.width>=c.height?'l':'p';if(!doc)doc=new jsPDF({orientation:o,unit:'mm',format:'a3'});else doc.addPage('a3',o);doc.addImage(c.toDataURL('image/jpeg',.92),'JPEG',0,0,o==='l'?420:297,o==='l'?297:420);}
+    for(const c of cs){const o=c.width>=c.height?'l':'p';if(!doc)doc=new jsPDF({orientation:o,unit:'mm',format:'a3'});else doc.addPage('a3',o);doc.addImage(c.toDataURL('image/jpeg',.95),'JPEG',0,0,o==='l'?420:297,o==='l'?297:420);}
     doc.save(`${baseName()}_測定図_A3_${stamp()}.pdf`);toast('A3のPDFを出力しました');
   }catch(err){alert('PDF出力に失敗：'+err.message);}
 }
@@ -1465,7 +1477,7 @@ async function printOut(){
   toast('印刷用データを作成中…');
   try{
     const cs=await buildOutCanvases(),sz=$('#prSize').value==='A4'?'A4':'A3';
-    const pages=cs.map(c=>`<div class="pg ${c.width>=c.height?'l':'p'}"><img src="${c.toDataURL('image/jpeg',.92)}"></div>`).join('');
+    const pages=cs.map(c=>`<div class="pg ${c.width>=c.height?'l':'p'}"><img src="${c.toDataURL('image/jpeg',.95)}"></div>`).join('');
     const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(baseName())}_測定図</title><style>
 @page land{size:${sz} landscape;margin:0}@page port{size:${sz} portrait;margin:0}
 html,body{margin:0;padding:0;background:#fff}
