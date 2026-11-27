@@ -99,14 +99,6 @@ details.set select,details.set input[type=range]{flex:1}
 #dBar select{font:inherit;padding:6px 6px;border:1px solid #b9c0c8;border-radius:7px;background:#fff;color:#1c2127}
 #dWrap{flex:1;position:relative;min-height:0;background:#cfd5dc;overflow:hidden}
 #dCv{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none;display:block}
-#mapw{position:fixed;inset:0;z-index:16;background:var(--bg);display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
-#mapw[hidden]{display:none}
-#mBar{display:flex;gap:6px;padding:6px 8px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap;row-gap:5px;white-space:nowrap;align-items:center;flex:0 0 auto}
-#mBar select,#mBar input{font:inherit;padding:6px 8px;border:1px solid #b9c0c8;border-radius:7px;background:#fff;color:#1c2127}
-#mBar input{min-width:200px}
-#mWrap{flex:1;position:relative;min-height:0;background:#cfd5dc;overflow:hidden}
-#mCv{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none;display:block}
-#mInfo{position:absolute;left:10px;bottom:12px;max-width:calc(100% - 20px);background:rgba(21,101,192,.93);color:#fff;padding:8px 12px;border-radius:8px;font-size:12.5px;line-height:1.6;pointer-events:none}
 #noteOpts{display:none}
 #dHint{position:absolute;left:10px;bottom:12px;max-width:calc(100% - 20px);background:rgba(21,101,192,.93);color:#fff;padding:8px 12px;border-radius:8px;font-size:12.5px;line-height:1.6;pointer-events:none}
 
@@ -127,7 +119,6 @@ button{font-weight:700}
 .tbRow .grp:first-child{border-left:none;padding-left:0}
 .tb select{font:inherit;font-weight:700;padding:7px 8px;border:1px solid #b9c0c8;border-radius:7px;background:#fff;color:#1c2127}
 #pgl,#dPg{min-width:42px;text-align:center;font-weight:800}
-#mBar button,#mBar select{font-weight:700}
 @media(max-width:1060px){
  .tbTop{flex-wrap:wrap;row-gap:0}
  .tabs{order:9;flex:1 0 100%;margin:4px 0 0}
@@ -199,23 +190,10 @@ button{font-weight:700}
       <button data-t="hand">🖐 移動</button>
     </span><span class="grp"><button id="dAuto" class="on" title="ペンで描いた線を自動で直線・水平垂直に整えます（曲線や文字を手書きしたいときはOFF）">📐 自動直線</button><button id="dFinger" title="ONにすると指でも描けます（Apple Pencilなどペン使用時はOFF推奨）">☝ 指で描く</button></span><button id="dDelSel" class="danger" style="display:none">🗑 選択を削除</button><button id="dClear" class="danger">🗑 全消去</button></div>
   <div class="tbRow" data-pane="style"><span class="grp" id="dCols"></span><span class="grp"><select id="dW" title="線の太さ"><option value="0.25">線 0.25mm</option><option value="0.35">線 0.35mm</option><option value="0.5">線 0.5mm</option><option value="0.7">線 0.7mm</option><option value="1">線 1mm</option><option value="1.5">線 1.5mm</option><option value="2.5">線 2.5mm</option></select><button id="dDash" title="破線（境界線など）">┄ 破線</button><select id="dSize" title="文字の大きさ"><option value="5">文字 小</option><option value="8">文字 中</option><option value="12">文字 大</option><option value="18">文字 特大</option></select></span><span class="grp"><button id="dGrid" class="on">方眼</button></span></div>
-  <div class="tbRow" data-pane="page"><span class="grp"><select id="dPaper" title="用紙"><option value="a3l">A3 横</option><option value="a3p">A3 縦</option><option value="a4l">A4 横</option><option value="a4p">A4 縦</option></select><button id="dPAdd">＋ ページ</button><button id="dPDel" class="danger" title="このページを削除">✕ ページ削除</button></span><span class="grp"><button id="dImg" title="写真・地図のスクリーンショット等を貼り付け（Ctrl+Vでも貼り付け可）">🖼 画像</button><button id="dPaste" title="コピーした画像（スクリーンショット）を貼り付けます">📋 貼付</button><button id="dMap" class="pri" title="国土地理院の地図（APIキー不要）で範囲を指定して自動で貼り付けます">🗺 地図取込</button><span id="dImgG" style="display:none;gap:3px"><button id="dIz">画像＋</button><button id="dIm">画像－</button></span></span></div>
+  <div class="tbRow" data-pane="page"><span class="grp"><select id="dPaper" title="用紙"><option value="a3l">A3 横</option><option value="a3p">A3 縦</option><option value="a4l">A4 横</option><option value="a4p">A4 縦</option></select><button id="dPAdd">＋ ページ</button><button id="dPDel" class="danger" title="このページを削除">✕ ページ削除</button></span><span class="grp"><button id="dImg" title="画像を貼り付けます。コピー済みのスクリーンショットがあればそのまま貼り付け、無ければファイルを選択します（Ctrl+Vでも可）">🖼 画像貼付</button><button id="dMap" class="pri" title="Googleマップを別タブで開きます。スクリーンショットを撮ってコピーし、「🖼 画像貼付」で貼り付けます">🗺 Googleマップを開く</button><span id="dImgG" style="display:none;gap:3px"><button id="dIz">画像＋</button><button id="dIm">画像－</button></span></span></div>
 </div>
   <input type="file" id="dFile" accept="image/*" hidden>
-  <div id="dWrap"><canvas id="dCv"></canvas><div id="dHint">ペン（マウス）で敷地のアウトラインや建物・道路を手書きします。<br>指で描く場合は「☝ 指で描く」をON。2本指で拡大・移動できます。<br>「＋ ページ」で階ごとにページを増やせます。「🖼 画像」で写真、「🗺 地図取込」で現在地周辺の地図（国土地理院）を範囲指定して下絵に貼れます。<br>描き終えたら「📄 PDFに変換して測定へ」を押すと、PDF図面と同じようにレベル測定できます。</div></div>
-</div>
-<div id="mapw" hidden>
-  <div id="mBar">
-    <button id="mClose">✕ 閉じる</button>
-    <input id="mQ" type="search" placeholder="住所・地名（例：宇都宮市〇〇町）または 緯度,経度">
-    <button id="mGo">検索</button>
-    <button id="mHere" class="pri" title="端末の現在地へ移動します">📍 現在地</button>
-    <select id="mLayer"><option value="photo">地理院 航空写真</option><option value="std">地理院 地図</option><option value="pale">地理院 淡色地図</option></select>
-    <span class="grp"><button id="mPan" class="on">🖐 移動</button><button id="mRect">⬚ 範囲指定</button></span>
-    <span class="grp"><button id="mZo">－</button><span id="mZ">17</span><button id="mZi">＋</button></span>
-    <button id="mImport" class="acc">⬇ この範囲を取り込む</button>
-  </div>
-  <div id="mWrap"><canvas id="mCv"></canvas><div id="mInfo"></div></div>
+  <div id="dWrap"><canvas id="dCv"></canvas><div id="dHint">ペン（マウス）で敷地のアウトラインや建物・道路を手書きします。<br>指で描く場合は「☝ 指で描く」をON。2本指で拡大・移動できます。<br>「＋ ページ」で階ごとにページを増やせます。「🖼 画像貼付」で写真・スクショ、「🗺 Googleマップを開く」で地図を表示→スクリーンショットをコピー→「🖼 画像貼付」で下絵に貼れます。<br>描き終えたら「📄 PDFに変換して測定へ」を押すと、PDF図面と同じようにレベル測定できます。</div></div>
 </div>
 <div id="modal"></div>
 <div id="toast"></div>
@@ -2226,155 +2204,16 @@ function dImgScale(f){
   dDraw();dSave();
 }
 
-/* --- 地図（国土地理院タイル）から範囲指定で取り込み --- */
-const MAP={open:false,cx:0.5,cy:0.5,z:17,layer:'photo',mode:'pan',rect:null,tiles:new Map(),ptrs:new Map(),drag:null,pd:0,wt:0};
-const mcv=$('#mCv'),mwrap=$('#mWrap');
-const lng2x=l=>(l+180)/360,lat2y=la=>{const s=Math.sin(la*Math.PI/180);return 0.5-Math.log((1+s)/(1-s))/(4*Math.PI);};
-const x2lng=x=>x*360-180,y2lat=y=>{const n=Math.PI-2*Math.PI*y;return 180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n)));};
-MAP.cx=lng2x(139.8985);MAP.cy=lat2y(36.5592);
-const TILE={
-  photo:(z,x,y)=>`https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/${z}/${x}/${y}.jpg`,
-  std:(z,x,y)=>`https://cyberjapandata.gsi.go.jp/xyz/std/${z}/${x}/${y}.png`,
-  pale:(z,x,y)=>`https://cyberjapandata.gsi.go.jp/xyz/pale/${z}/${x}/${y}.png`
-};
-function mTile(z,x,y,layer){
-  const k=layer+'/'+z+'/'+x+'/'+y;let t=MAP.tiles.get(k);
-  if(!t){
-    const im=new Image();im.crossOrigin='anonymous';t={im,ok:false,err:false};
-    im.onload=()=>{t.ok=true;if(MAP.open)mDraw();};im.onerror=()=>{t.err=true;};im.src=TILE[layer](z,x,y);
-    MAP.tiles.set(k,t);if(MAP.tiles.size>700)MAP.tiles.delete(MAP.tiles.keys().next().value);
-  }
-  return t;
+/* --- Googleマップを別タブで開く → スクリーンショット → 貼付 --- */
+function dOpenGMap(){
+  const base='https://www.google.com/maps/@';
+  const url=(lat,lng)=>`${base}${lat.toFixed(6)},${lng.toFixed(6)},19z/data=!3m1!1e3`;
+  const w=window.open('about:blank','_blank');
+  const go=u=>{if(w&&!w.closed)w.location.href=u;else location.href=u;};
+  if(!navigator.geolocation){go(url(36.5592,139.8985));}
+  else navigator.geolocation.getCurrentPosition(p=>go(url(p.coords.latitude,p.coords.longitude)),()=>go(url(36.5592,139.8985)),{enableHighAccuracy:true,timeout:6000,maximumAge:60000});
+  toast('Googleマップを開きました。範囲を調整してスクリーンショット → コピー後、このアプリで「🖼 画像貼付」（またはCtrl+V）');
 }
-const mSz=()=>({W:mwrap.clientWidth||1,H:mwrap.clientHeight||1});
-const mPos=e=>{const r=mcv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};};
-const mWorld=p=>{const{W,H}=mSz(),N=256*2**MAP.z;return{x:MAP.cx+(p.x-W/2)/N,y:MAP.cy+(p.y-H/2)/N};};
-function mResize(){const{W,H}=mSz(),dpr=devicePixelRatio||1;mcv.width=Math.round(W*dpr);mcv.height=Math.round(H*dpr);mDraw();}
-function mDraw(){
-  const ctx=mcv.getContext('2d'),dpr=devicePixelRatio||1,{W,H}=mSz(),z=MAP.z,n=2**z,N=256*n;
-  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#cfd5dc';ctx.fillRect(0,0,W,H);
-  const x0=Math.floor((MAP.cx-W/2/N)*n),x1=Math.floor((MAP.cx+W/2/N)*n),y0=Math.max(0,Math.floor((MAP.cy-H/2/N)*n)),y1=Math.min(n-1,Math.floor((MAP.cy+H/2/N)*n));
-  for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
-    const t=mTile(z,((tx%n)+n)%n,ty,MAP.layer);
-    if(t.ok)ctx.drawImage(t.im,tx*256-MAP.cx*N+W/2,ty*256-MAP.cy*N+H/2,256.6,256.6);
-  }
-  const R=MAP.rect;
-  if(R){
-    const px=(R.x0-MAP.cx)*N+W/2,py=(R.y0-MAP.cy)*N+H/2,pw=(R.x1-R.x0)*N,ph=(R.y1-R.y0)*N;
-    ctx.fillStyle='rgba(239,108,0,.15)';ctx.fillRect(px,py,pw,ph);ctx.strokeStyle='#ef6c00';ctx.lineWidth=2.5;ctx.setLineDash([8,5]);ctx.strokeRect(px,py,pw,ph);ctx.setLineDash([]);
-  }
-  if(MAP.here){ // 現在地マーカー
-    const hx=(lng2x(MAP.here.lng)-MAP.cx)*N+W/2,hy=(lat2y(MAP.here.lat)-MAP.cy)*N+H/2,ar=MAP.here.acc/(40075016.686*Math.cos(MAP.here.lat*Math.PI/180))*N;
-    if(ar>8&&ar<Math.max(W,H)){ctx.fillStyle='rgba(26,115,232,.15)';ctx.beginPath();ctx.arc(hx,hy,ar,0,7);ctx.fill();}
-    ctx.fillStyle='#1a73e8';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(hx,hy,8,0,7);ctx.fill();ctx.stroke();
-  }
-  {ctx.font='11px sans-serif';ctx.textAlign='right';ctx.fillStyle='rgba(0,0,0,.55)';const tx='出典：国土地理院タイル',tw=ctx.measureText(tx).width;
-  ctx.fillRect(W-tw-14,H-20,tw+10,16);ctx.fillStyle='#fff';ctx.fillText(tx,W-9,H-8);}
-  $('#mZ').textContent=String(z);mInfo();
-}
-function mRectM(){
-  const R=MAP.rect;if(!R)return null;
-  const lat=y2lat((R.y0+R.y1)/2),k=40075016.686*Math.cos(lat*Math.PI/180);
-  return{w:(R.x1-R.x0)*k,h:(R.y1-R.y0)*k};
-}
-function mInfo(){
-  const r=mRectM(),e=$('#mInfo');
-  e.textContent=r&&r.w>1?`選択範囲：約 ${Math.round(r.w)}m × ${Math.round(r.h)}m　→「⬇ この範囲を取り込む」`:'① 「📍 現在地」または住所検索で移動 ② 「⬚ 範囲指定」で取り込みたい範囲をドラッグ ③ 「⬇ この範囲を取り込む」で作図画面に自動で貼り付け（実寸の縮尺も自動設定）';
-}
-function mZoom(dz,px,py){
-  const nz=Math.max(5,Math.min(18,MAP.z+dz));if(nz===MAP.z)return;
-  const{W,H}=mSz();if(px===undefined){px=W/2;py=H/2;}
-  const w0=mWorld({x:px,y:py});MAP.z=nz;const N=256*2**nz;MAP.cx=w0.x-(px-W/2)/N;MAP.cy=w0.y-(py-H/2)/N;mDraw();
-}
-mcv.addEventListener('pointerdown',e=>{
-  e.preventDefault();try{mcv.setPointerCapture(e.pointerId);}catch(_){}
-  const p=mPos(e);MAP.ptrs.set(e.pointerId,p);
-  if(MAP.ptrs.size>=2){MAP.drag=null;const[a,b]=[...MAP.ptrs.values()];MAP.pd=Math.hypot(a.x-b.x,a.y-b.y)||1;return;}
-  MAP.drag={mode:MAP.mode,sx:p.x,sy:p.y,cx:MAP.cx,cy:MAP.cy};
-  if(MAP.mode==='rect'){const w=mWorld(p);MAP.drag.a=w;MAP.rect={x0:w.x,y0:w.y,x1:w.x,y1:w.y};mDraw();}
-});
-mcv.addEventListener('pointermove',e=>{
-  if(!MAP.ptrs.has(e.pointerId))return;
-  const p=mPos(e);MAP.ptrs.set(e.pointerId,p);
-  if(MAP.ptrs.size>=2){
-    const[a,b]=[...MAP.ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y)||1,mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
-    if(d/MAP.pd>1.6){mZoom(1,mx,my);MAP.pd=d;}else if(d/MAP.pd<0.62){mZoom(-1,mx,my);MAP.pd=d;}
-    return;
-  }
-  const dr=MAP.drag;if(!dr)return;const N=256*2**MAP.z;
-  if(dr.mode==='pan'){MAP.cx=dr.cx-(p.x-dr.sx)/N;MAP.cy=dr.cy-(p.y-dr.sy)/N;mDraw();}
-  else{const w=mWorld(p);MAP.rect={x0:Math.min(dr.a.x,w.x),y0:Math.min(dr.a.y,w.y),x1:Math.max(dr.a.x,w.x),y1:Math.max(dr.a.y,w.y)};mDraw();}
-});
-const mUp=e=>{MAP.ptrs.delete(e.pointerId);MAP.drag=null;if(MAP.ptrs.size===1){const q=[...MAP.ptrs.values()][0];MAP.drag={mode:MAP.mode,sx:q.x,sy:q.y,cx:MAP.cx,cy:MAP.cy};if(MAP.mode==='rect')MAP.drag=null;}mInfo();};
-mcv.addEventListener('pointerup',mUp);mcv.addEventListener('pointercancel',mUp);
-mcv.addEventListener('wheel',e=>{e.preventDefault();const t=Date.now();if(t-MAP.wt<180)return;MAP.wt=t;const p=mPos(e);mZoom(e.deltaY<0?1:-1,p.x,p.y);},{passive:false});
-mcv.addEventListener('contextmenu',e=>e.preventDefault());
-function mSetMode(m){MAP.mode=m;mcv.style.pointerEvents='auto';$('#mPan').classList.toggle('on',m==='pan');$('#mRect').classList.toggle('on',m==='rect');mcv.style.cursor=m==='rect'?'crosshair':'grab';}
-async function mOpen(){
-  MAP.open=true;$('#mapw').hidden=false;
-  if(!MAP.inited){MAP.inited=true;let l=null;try{l=localStorage.getItem('mapLayer');}catch(_){}MAP.layer=(l&&TILE[l])?l:'photo';$('#mLayer').value=MAP.layer;}
-  await mSetLayer(MAP.layer);mSetMode('pan');mResize();
-  if(!MAP.here)mHere(true);
-}
-function mClose(){MAP.open=false;$('#mapw').hidden=true;}
-async function mSearch(){
-  const q=$('#mQ').value.trim();if(!q)return;
-  const m=q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,，\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
-  if(m){MAP.cx=lng2x(parseFloat(m[2]));MAP.cy=lat2y(parseFloat(m[1]));MAP.z=Math.max(MAP.z,17);mDraw();return;}
-  try{
-    const r=await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q='+encodeURIComponent(q)),j=await r.json();
-    if(!j.length)return toast('見つかりませんでした。別の住所・地名でお試しください');
-    const[lng,lat]=j[0].geometry.coordinates;MAP.cx=lng2x(lng);MAP.cy=lat2y(lat);MAP.z=Math.max(MAP.z,17);mDraw();toast(j[0].properties.title||'移動しました');
-  }catch(e){toast('検索できませんでした。通信環境を確認するか「緯度,経度」で入力してください');}
-}
-const mLoadTile=(z,x,y,layer)=>new Promise(res=>{
-  const t=MAP.tiles.get(layer+'/'+z+'/'+x+'/'+y);if(t&&t.ok)return res(t.im);
-  const im=new Image();im.crossOrigin='anonymous';im.onload=()=>res(im);im.onerror=()=>res(null);im.src=TILE[layer](z,x,y);
-});
-async function mImport(){
-  const R=MAP.rect;
-  if(!R||(R.x1-R.x0)*256*2**MAP.z<8||(R.y1-R.y0)*256*2**MAP.z<8)return toast('先に「⬚ 範囲指定」で、取り込む範囲をドラッグしてください');
-  let z=18;while(z>5&&((R.x1-R.x0)*256*2**z>4000||(R.y1-R.y0)*256*2**z>4000))z--;
-  const n=2**z,W=Math.max(1,Math.round((R.x1-R.x0)*256*n)),H=Math.max(1,Math.round((R.y1-R.y0)*256*n));
-  const tx0=Math.floor(R.x0*n),tx1=Math.floor(R.x1*n),ty0=Math.max(0,Math.floor(R.y0*n)),ty1=Math.min(n-1,Math.floor(R.y1*n));
-  if((tx1-tx0+1)*(ty1-ty0+1)>400)return toast('範囲が広すぎます。もう少し狭く指定してください');
-  toast('地図を取り込み中…');
-  try{
-    const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);
-    const jobs=[];
-    for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++)jobs.push(mLoadTile(z,((tx%n)+n)%n,ty,MAP.layer).then(im=>{if(im)x.drawImage(im,Math.round((tx-R.x0*n)*256),Math.round((ty-R.y0*n)*256),257,257);return !!im;}));
-    const oks=await Promise.all(jobs);
-    if(!oks.some(Boolean))throw new Error('地図画像を取得できませんでした（通信環境をご確認ください）');
-    let src;try{src=c.toDataURL('image/jpeg',.9);}catch(_){throw new Error('この環境では地図画像を取り込めません。スクリーンショットを「🖼 画像」で貼り付けてください');}
-    const lat=y2lat((R.y0+R.y1)/2),res=40075016.686*Math.cos(lat*Math.PI/180)/(256*n),gw=W*res*1000;
-    mClose();dPlaceImage(c,src,gw);
-    toast(`地図を取り込みました（横 約${Math.round(W*res)}m）。実寸の縮尺は変換時に自動設定されます`);
-  }catch(e){toast('取り込めませんでした：'+e.message);}
-}
-
-async function mSetLayer(l){
-  if(!TILE[l])l='photo';
-  MAP.layer=l;$('#mLayer').value=l;try{localStorage.setItem('mapLayer',l);}catch(_){}
-  MAP.z=Math.min(MAP.z,18);
-  mSetMode(MAP.mode);mDraw();
-}
-function mHere(quiet){
-  if(!navigator.geolocation)return quiet||toast('この端末では現在地を取得できません');
-  if(!quiet)toast('現在地を取得中…');
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const{latitude:lat,longitude:lng,accuracy:acc}=pos.coords;MAP.here={lat,lng,acc};
-    MAP.cx=lng2x(lng);MAP.cy=lat2y(lat);MAP.z=Math.max(MAP.z,18);mDraw();
-    toast(`現在地に移動しました（精度 約${Math.round(acc)}m）。「⬚ 範囲指定」で取り込む範囲をドラッグします`);
-  },err=>{if(!quiet)toast(err.code===1?'位置情報の利用が許可されていません（端末の設定→Safari→位置情報 を「許可」に）':'現在地を取得できませんでした。住所検索をお使いください');},
-  {enableHighAccuracy:true,timeout:15000,maximumAge:30000});
-}
-$('#mHere').onclick=()=>mHere(false);
-$('#mClose').onclick=mClose;$('#mGo').onclick=mSearch;$('#mQ').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)mSearch();});
-$('#mLayer').onchange=e=>mSetLayer(e.target.value);
-$('#mPan').onclick=()=>mSetMode('pan');$('#mRect').onclick=()=>mSetMode('rect');
-$('#mZi').onclick=()=>mZoom(1);$('#mZo').onclick=()=>mZoom(-1);
-$('#mImport').onclick=mImport;
-new ResizeObserver(()=>{if(MAP.open)mResize();}).observe(mwrap);
 
 /* --- 開く・閉じる --- */
 async function dOpen(){
@@ -2392,7 +2231,7 @@ async function dOpen(){
   dResize();dLoadPage(Math.min((d&&d.pi)||0,DRW.pages.length-1));
 }
 function dClose(){
-  dFlush();DRW.open=false;DRW.cur=null;$('#drw').hidden=true;mClose();
+  dFlush();DRW.open=false;DRW.cur=null;$('#drw').hidden=true;
   resize();
 }
 $('#bDraw').onclick=dOpen;
@@ -2401,21 +2240,22 @@ $('#dConv').onclick=()=>dConvert(false);
 $('#dAppend').onclick=()=>dConvert(true);
 $('#dPrev').onclick=()=>dSwitch(DRW.pi-1);$('#dNext').onclick=()=>dSwitch(DRW.pi+1);
 $('#dPAdd').onclick=dPageAdd;$('#dPDel').onclick=dPageDel;
-$('#dImg').onclick=()=>$('#dFile').click();
 $('#dFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)dAddImageFile(f);};
-$('#dMap').onclick=mOpen;
+$('#dMap').onclick=dOpenGMap;
 async function dPasteClip(){
+  // コピー済みの画像があれば貼り付け。無い／読めない場合は画像ファイルの選択を開く
   try{
-    if(!navigator.clipboard||!navigator.clipboard.read)throw 0;
-    const its=await navigator.clipboard.read();
-    for(const it of its){const t=it.types.find(x=>x.startsWith('image/'));if(t){const b=await it.getType(t);await dAddImageFile(new File([b],'clip.png',{type:t}));return;}}
-    toast('クリップボードに画像がありません。スクリーンショットを撮って「コピー」してから押してください');
-  }catch(e){toast('貼り付けできません。画面を長押し→「ペースト」、またはスクリーンショットを写真に保存して「🖼 画像」から選んでください');}
+    if(navigator.clipboard&&navigator.clipboard.read){
+      const its=await navigator.clipboard.read();
+      for(const it of its){const t=it.types.find(x=>x.startsWith('image/'));if(t){const b=await it.getType(t);await dAddImageFile(new File([b],'clip.png',{type:t}));return;}}
+    }
+  }catch(_){}
+  $('#dFile').click();
 }
-$('#dPaste').onclick=dPasteClip;
+$('#dImg').onclick=dPasteClip;
 $('#dIz').onclick=()=>dImgScale(1.1);$('#dIm').onclick=()=>dImgScale(1/1.1);
 document.addEventListener('paste',e=>{
-  if(!DRW.open||MAP.open)return;
+  if(!DRW.open)return;
   const its=(e.clipboardData&&e.clipboardData.items)||[];
   for(const it of its)if(it.type&&it.type.startsWith('image/')){const f=it.getAsFile();if(f){e.preventDefault();dAddImageFile(f);return;}}
 });
@@ -2439,7 +2279,6 @@ $('#dClear').onclick=()=>{
 };
 document.addEventListener('keydown',e=>{
   if(!DRW.open||$('#modal').classList.contains('show'))return;
-  if(MAP.open){if(e.key==='Escape')mClose();return;}
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?dRedo():dUndo();}
   else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'){e.preventDefault();DRW.tool='sel';DRW.sel=[...DRW.items];dSync();dDraw();}
   else if((e.key==='Delete'||e.key==='Backspace')&&DRW.sel.length){e.preventDefault();dDelSel();}
