@@ -1490,8 +1490,9 @@ class VecPage{
     const fm=/(?:(bold)\s+)?([\d.]+)px/.exec(this.font),size=fm?parseFloat(fm[2]):12,bold=!!(fm&&fm[1]);
     const mt=this.measureText(t),fa=mt.fontBoundingBoxAscent??size*0.9,fd=mt.fontBoundingBoxDescent??size*0.25,
       ea=mt.emHeightAscent??fa,ed=mt.emHeightDescent??fd,tb=this.textBaseline;
+    // 英数字(Helvetica)：端末の日本語フォントのメトリクスに左右されないよう、数字の高さ(0.72em)を基準に中央へ配置
     let off=0;
-    if(tb==='top'||tb==='hanging')off=ea;else if(tb==='middle')off=(ea-ed)/2;else if(tb==='bottom'||tb==='ideographic')off=-ed;
+    if(tb==='top'||tb==='hanging')off=size*0.86;else if(tb==='middle')off=size*0.36;else if(tb==='bottom'||tb==='ideographic')off=-size*0.14;
     const ta=this.textAlign,al=(w)=>ta==='center'?-w/2:(ta==='right'||ta==='end')?-w:0;
     const c=pdfColor(this.fillStyle),m=this.ctm,u=this.u,ch=this.ch,gs=this._gs(c.a*this.globalAlpha);
     if(/^[\x20-\x7e]+$/.test(t)){
@@ -1503,16 +1504,16 @@ class VecPage{
       return;
     }
     const w=mt.width,x0=x+al(w),R=Math.max(1,Math.min(12,Math.ceil(8.4*this.sc*u))),pad=Math.ceil(size*0.2)+1,
-      iw=w+2*pad,ih=fa+fd+2*pad,pw=Math.ceil(iw*R),ph=Math.ceil(ih*R);
+      iw=w+2*pad,ih=2*(fa+fd)+2*pad,anc=pad+fa+fd,pw=Math.ceil(iw*R),ph=Math.ceil(ih*R);
     if(pw>9000||ph>9000||pw<1||ph<1)return;
-    const key=this.font+'|'+this.fillStyle+'|'+R+'|'+t;let idx=this.imgKey[key];
+    const key=this.font+'|'+this.fillStyle+'|'+this.textBaseline+'|'+R+'|'+t;let idx=this.imgKey[key];
     if(idx===undefined){
       const cv=document.createElement('canvas');cv.width=pw;cv.height=ph;const rc=cv.getContext('2d');
-      rc.font=this.font.replace(/([\d.]+)px/,(_,v)=>(parseFloat(v)*R)+'px');rc.fillStyle=this.fillStyle;rc.textBaseline='alphabetic';rc.textAlign='left';
-      rc.fillText(t,pad*R,(pad+fa)*R);
+      rc.font=this.font.replace(/([\d.]+)px/,(_,v)=>(parseFloat(v)*R)+'px');rc.fillStyle=this.fillStyle;rc.textBaseline=this.textBaseline;rc.textAlign='left';
+      rc.fillText(t,pad*R,anc*R);
       idx=this.imgs.length;this.imgs.push({bytes:d2b(cv.toDataURL('image/png')),tag:''});this.imgKey[key]=idx;
     }
-    const ix=x0-pad,iy=y+off-fa-pad,cm=[u*m[0]*iw,-u*m[1]*iw,-u*m[2]*ih,u*m[3]*ih,u*(m[0]*ix+m[2]*(iy+ih)+m[4]),u*(ch-(m[1]*ix+m[3]*(iy+ih)+m[5]))].map(vn).join(' ');
+    const ix=x0-pad,iy=y-anc,cm=[u*m[0]*iw,-u*m[1]*iw,-u*m[2]*ih,u*m[3]*ih,u*(m[0]*ix+m[2]*(iy+ih)+m[4]),u*(ch-(m[1]*ix+m[3]*(iy+ih)+m[5]))].map(vn).join(' ');
     this.s.push(`q ${this._gs(this.globalAlpha)} ${cm} cm %%IMG${idx}%% Do Q`);
   }
   async finish(){
