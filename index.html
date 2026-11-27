@@ -16,7 +16,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;font-family:-apple-system,"Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;font-size:14px;color:#1c2127}
 body{display:flex;flex-direction:column;background:var(--bg);overflow:hidden;-webkit-user-select:none;user-select:none}
-#bar{display:flex;gap:6px;padding:6px 8px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap;align-items:center;flex:0 0 auto}
+#bar{display:flex;gap:6px;padding:6px 8px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap;row-gap:5px;white-space:nowrap;align-items:center;flex:0 0 auto}
 .grp{display:inline-flex;gap:3px;align-items:center;padding:0 4px;border-left:1px solid var(--line)}
 button{font:inherit;border:1px solid #b9c0c8;background:#fff;border-radius:7px;padding:7px 10px;cursor:pointer;color:#1c2127}
 button:active{background:#e3e8ee}
@@ -95,10 +95,19 @@ details.set select,details.set input[type=range]{flex:1}
 #toast.show{opacity:1}
 #drw{position:fixed;inset:0;z-index:15;background:var(--bg);display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
 #drw[hidden]{display:none}
-#dBar{display:flex;gap:6px;padding:6px 8px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap;align-items:center;flex:0 0 auto}
+#dBar{display:flex;gap:6px;padding:6px 8px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap;row-gap:5px;white-space:nowrap;align-items:center;flex:0 0 auto}
 #dBar select{font:inherit;padding:6px 6px;border:1px solid #b9c0c8;border-radius:7px;background:#fff;color:#1c2127}
 #dWrap{flex:1;position:relative;min-height:0;background:#cfd5dc;overflow:hidden}
 #dCv{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none;display:block}
+#mapw{position:fixed;inset:0;z-index:16;background:var(--bg);display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
+#mapw[hidden]{display:none}
+#mBar{display:flex;gap:6px;padding:6px 8px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap;row-gap:5px;white-space:nowrap;align-items:center;flex:0 0 auto}
+#mBar select,#mBar input{font:inherit;padding:6px 8px;border:1px solid #b9c0c8;border-radius:7px;background:#fff;color:#1c2127}
+#mBar input{min-width:200px}
+#mWrap{flex:1;position:relative;min-height:0;background:#cfd5dc;overflow:hidden}
+#mCv{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none;display:block}
+#mInfo{position:absolute;left:10px;bottom:12px;max-width:calc(100% - 20px);background:rgba(21,101,192,.93);color:#fff;padding:8px 12px;border-radius:8px;font-size:12.5px;line-height:1.6;pointer-events:none}
+#noteOpts{display:none}
 #dHint{position:absolute;left:10px;bottom:12px;max-width:calc(100% - 20px);background:rgba(21,101,192,.93);color:#fff;padding:8px 12px;border-radius:8px;font-size:12.5px;line-height:1.6;pointer-events:none}
 </style>
 </head>
@@ -106,10 +115,12 @@ details.set select,details.set input[type=range]{flex:1}
 <div id="bar">
   <button id="bSite" class="pri">🏗 <span id="siteName">—</span></button>
   <button id="bOpen">📂 図面を開く</button>
+  <button id="bAdd" title="PDF・画像を新しいページ（別の階など）として追加します">➕ ページ追加</button>
   <button id="bDraw" title="図面がない現場：手書きで作図してPDFに変換します">✏️ 手書き図面</button>
   <span class="grp"><button id="bPrev">◀</button><span id="pgl">-</span><button id="bNext">▶</button></span>
   <span class="grp" id="modes">
     <button data-mode="write" class="on">📍 測点</button>
+    <button data-mode="note" title="手書きで注釈を書き込みます。長押しで測点は入りません（測点を打つときは「📍 測点」に戻します）">✍ 注釈</button>
     <button data-mode="erase">🧽 消す</button>
     <button data-mode="hand">🖐 移動</button>
   </span>
@@ -127,6 +138,8 @@ details.set select,details.set input[type=range]{flex:1}
   <button id="bDatum">📐 基準高さ</button>
   <span class="grp" id="bases"><button data-base="p1">基準点1</button><button data-base="kbm">KBM</button><button data-base="gl">GL</button><button data-base="fl">FL</button></span>
   <button id="bNew" class="acc">🔄 レベル据え直し</button>
+  <span class="grp" id="floorGrp"><button id="bFloor" class="pri" title="フロア別の測定一覧">🏢 <span id="floorName">—</span></button><button id="bStartF" class="acc" title="このページ（別の階）の測定を新しく始めます">▶ 測定開始</button><button id="bDoneF" title="この階の測定を完了します">✔ 測定完了</button></span>
+  <span class="grp" id="noteOpts"><span id="noteCols" style="display:inline-flex;gap:3px"></span><select id="noteW" title="注釈の太さ"><option value="2.5">細</option><option value="4">中</option><option value="7">太</option><option value="12">極太</option></select></span>
   <span class="grp"><button id="bSave">💾 保存</button><button id="bLoad">📥 読込</button><button id="bCsv">CSV</button><button id="bPng">PNG</button><button id="bPdf" class="pri">PDF(A3)</button></span>
   <button id="bPanel">📋 測点表</button>
   <button id="bClean" title="キャッシュ整理">🧹</button>
@@ -155,16 +168,34 @@ details.set select,details.set input[type=range]{flex:1}
       <button id="dAuto" class="on" title="ペンで描いた線を自動で直線・水平垂直に整えます（曲線や文字を手書きしたいときはOFF）">📐 自動直線</button>
       <select id="dSize" title="文字の大きさ"><option value="5">文字 小</option><option value="8">文字 中</option><option value="12">文字 大</option><option value="18">文字 特大</option></select>
     </span>
+    <span class="grp"><button id="dPrev">◀</button><span id="dPg">1/1</span><button id="dNext">▶</button><button id="dPAdd">＋ ページ</button><button id="dPDel" class="danger" title="このページを削除">✕</button></span>
+    <span class="grp"><button id="dImg" title="写真・Googleマップのスクリーンショット等を貼り付け（Ctrl+Vでも貼り付け可）">🖼 画像</button><button id="dPaste" title="Googleマップ等でコピーした画像（スクリーンショット）を貼り付けます">📋 貼付</button><button id="dMap" title="地図から範囲を指定して取り込みます">🗺 地図取込</button><button id="dGmap" title="Googleマップを開きます（範囲のスクリーンショットを撮って「📋 貼付」）">G Googleマップ</button><span id="dImgG" style="display:none;gap:3px"><button id="dIz">画像＋</button><button id="dIm">画像－</button></span></span>
     <span class="grp"><button id="dUndo">↶</button><button id="dRedo">↷</button><button id="dFit">全体</button><button id="dGrid" class="on">方眼</button><button id="dFinger" title="ONにすると指でも描けます（Apple Pencilなどペン使用時はOFF推奨）">☝ 指で描く</button></span>
     <button id="dDelSel" class="danger" style="display:none">🗑 選択を削除</button>
     <button id="dClear" class="danger">🗑 全消去</button>
+    <button id="dAppend" style="display:none" title="今開いている図面の後ろに、この手書きページを追加します">➕ 現在の図面に追加</button>
     <button id="dConv" class="acc">📄 PDFに変換して測定へ</button>
   </div>
-  <div id="dWrap"><canvas id="dCv"></canvas><div id="dHint">ペン（マウス）で敷地のアウトラインや建物・道路を手書きします。<br>指で描く場合は「☝ 指で描く」をON。2本指で拡大・移動できます。<br>描き終えたら「📄 PDFに変換して測定へ」を押すと、PDF図面と同じようにレベル測定できます。</div></div>
+  <input type="file" id="dFile" accept="image/*" hidden>
+  <div id="dWrap"><canvas id="dCv"></canvas><div id="dHint">ペン（マウス）で敷地のアウトラインや建物・道路を手書きします。<br>指で描く場合は「☝ 指で描く」をON。2本指で拡大・移動できます。<br>「＋ ページ」で階ごとにページを増やせます。「🖼 画像」「🗺 地図取込」で敷地の写真・地図を下絵に貼れます（Googleマップは「G Googleマップ」→スクショをコピー→「📋 貼付」）。<br>描き終えたら「📄 PDFに変換して測定へ」を押すと、PDF図面と同じようにレベル測定できます。</div></div>
+</div>
+<div id="mapw" hidden>
+  <div id="mBar">
+    <button id="mClose">✕ 閉じる</button>
+    <input id="mQ" type="search" placeholder="住所・地名（例：宇都宮市〇〇町）または 緯度,経度">
+    <button id="mGo">検索</button>
+    <select id="mLayer"><option value="photo">航空写真</option><option value="std">地図</option><option value="pale">淡色地図</option></select>
+    <span class="grp"><button id="mPan" class="on">🖐 移動</button><button id="mRect">⬚ 範囲指定</button></span>
+    <span class="grp"><button id="mZo">－</button><span id="mZ">17</span><button id="mZi">＋</button></span>
+    <button id="mGoogle" title="Googleマップを新しいタブで開きます">🗺 Googleマップを開く</button>
+    <button id="mImport" class="acc">⬇ この範囲を取り込む</button>
+  </div>
+  <div id="mWrap"><canvas id="mCv"></canvas><div id="mInfo"></div></div>
 </div>
 <div id="modal"></div>
 <div id="toast"></div>
-<input type="file" id="file" accept="application/pdf,image/*" hidden>
+<input type="file" id="file" accept="application/pdf,image/*" multiple hidden>
+<input type="file" id="file2" accept="application/pdf,image/*" multiple hidden>
 <input type="file" id="jfile" accept=".json,application/json" hidden>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -186,6 +217,7 @@ const S={
   view:{s:1,tx:0,ty:0},sel:null,setOpen:false,
   scales:{},refs:[],meas:[],snapOn:true,orthoAuto:true,tmp:null,hover:null,hi:null,rs:1,selA:null,cross:false
 };
+S.floors=[];S.wf=null;
 let CALC={elev:{},hi:{},err:{}}, TAGS={};
 const undoSt=[],redoSt=[];
 let g=null, lp=null, renderTok=0;
@@ -203,7 +235,7 @@ DB.del=function(k){return this.open().then(db=>new Promise((res,rej)=>{const t=d
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtSize=n=>n<1024?n+'B':n<1048576?Math.round(n/1024)+'KB':(n/1048576).toFixed(1)+'MB';
 const fmtDate=t=>{const d=new Date(t||0);return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
-const EMPTY_DATA=()=>({points:[],strokes:[],setups:[],activeId:null,nextNo:1,nextId:1,datum:{k:null,g:null,f:null},scales:{},refs:[],meas:[]});
+const EMPTY_DATA=()=>({points:[],strokes:[],setups:[],activeId:null,nextNo:1,nextId:1,datum:{k:null,g:null,f:null},scales:{},refs:[],meas:[],floors:[],wf:null});
 
 /* ---------- 現場管理 ---------- */
 // 保存キー: sites=現場一覧(メタ) / cur=表示中の現場 / sd:<id>=測定データ / sf:<id>=図面ファイル / settings=表示設定
@@ -221,7 +253,7 @@ async function flushSave(){
     await DB.set('sd:'+id,sd);
     await DB.set('settings',settingsOf());
     const m=siteMeta(id);
-    if(m){m.updated=Date.now();m.pts=S.points.length;m.strokes=S.strokes.length;m.setups=S.setups.length;m.fileName=S.fileName;m.fileSize=S.bytes?S.bytes.byteLength:0;m.dataSize=JSON.stringify(sd).length;await saveSites();}
+    if(m){m.updated=Date.now();m.pts=allPts().length;m.strokes=S.strokes.length;m.setups=S.floors.reduce((a,f)=>a+(f.setups||[]).length,0);m.fileName=S.fileName;m.fileSize=S.bytes?S.bytes.byteLength:0;m.dataSize=JSON.stringify(sd).length;await saveSites();}
   }catch(e){console.warn(e);}
 }
 function updateSiteBtn(){$('#siteName').textContent=S.siteName||'—';}
@@ -365,9 +397,42 @@ async function openCleanup(fromMgr){
 /* ---------- データ ---------- */
 const nid=()=>S.nextId++;
 const pointById=id=>S.points.find(p=>p.id===id);
-function dataOf(){return {points:S.points,strokes:S.strokes,setups:S.setups,activeId:S.activeId,nextNo:S.nextNo,nextId:S.nextId,datum:S.datum,scales:S.scales,refs:S.refs,meas:S.meas};}
+function dataOf(){syncOut();return {floors:S.floors,wf:S.wf,points:S.points,strokes:S.strokes,setups:S.setups,activeId:S.activeId,nextNo:S.nextNo,nextId:S.nextId,datum:S.datum,scales:S.scales,refs:S.refs,meas:S.meas};}
 function settingsOf(){return {unit:S.unit,labelMode:S.labelMode,mk:S.mk,finger:S.finger,snapOn:S.snapOn,orthoAuto:S.orthoAuto,base:S.base,penColor:S.pen.color,penW:S.pen.w};}
-function restoreData(d){S.points=d.points||[];S.strokes=d.strokes||[];S.setups=d.setups||[];S.activeId=d.activeId??null;S.nextNo=d.nextNo||1;S.nextId=d.nextId||1;S.datum=Object.assign({k:null,g:null,f:null},d.datum||{});S.scales=d.scales||{};S.refs=d.refs||[];S.meas=d.meas||[];S.tmp=null;S.hover=null;S.sel=null;S.selA=null;S.pickRef=false;S.points.forEach(p=>{if(p.ax===undefined){p.ax=p.x;p.ay=p.y;}});}
+function restoreData(d){S.points=d.points||[];S.strokes=d.strokes||[];S.setups=d.setups||[];S.activeId=d.activeId??null;S.nextNo=d.nextNo||1;S.nextId=d.nextId||1;S.datum=Object.assign({k:null,g:null,f:null},d.datum||{});S.scales=d.scales||{};S.refs=d.refs||[];S.meas=d.meas||[];S.tmp=null;S.hover=null;S.sel=null;S.selA=null;S.pickRef=false;S.points.forEach(p=>{if(p.ax===undefined){p.ax=p.x;p.ay=p.y;}});
+  S.floors=Array.isArray(d.floors)?d.floors:[];S.wf=d.wf??null;
+  if(!S.floors.length&&(S.points.length||S.setups.length)){const id=S.nextId++;S.floors=[{id,name:'1階',pages:[...new Set(S.points.map(q=>q.page||1))],done:false}];S.wf=id;}
+  if(S.wf!==null&&!S.floors.some(f=>f.id===S.wf))S.wf=null;
+}
+/* ---------- フロア別の測定（ページ＝階ごとに基準点1(±0)から測り直す） ---------- */
+const floorById=id=>S.floors.find(f=>f.id===id)||null;
+const curFloor=()=>S.wf===null?null:floorById(S.wf);
+const floorDone=()=>{const f=curFloor();return !!(f&&f.done);};
+const floorForPage=n=>S.floors.find(f=>(f.pages||[]).includes(n))||null;
+function syncOut(){const f=curFloor();if(f){f.points=S.points;f.setups=S.setups;f.activeId=S.activeId;f.nextNo=S.nextNo;f.datum=S.datum;}}
+function loadFloor(f){
+  S.wf=f?f.id:null;S.points=f?(f.points||[]):[];S.setups=f?(f.setups||[]):[];S.activeId=f?(f.activeId??null):null;S.nextNo=f?(f.nextNo||1):1;
+  S.datum=Object.assign({k:null,g:null,f:null},(f&&f.datum)||{});S.sel=null;S.pickRef=false;S.tmp=null;S.hover=null;
+}
+function allPts(){syncOut();return S.floors.flatMap(f=>f.points||[]);}
+function activateFloor(n){const f=floorForPage(n);if((f?f.id:null)===S.wf)return;syncOut();loadFloor(f);undoSt.length=0;redoSt.length=0;}
+function createFloor(name,page){
+  syncOut();const f={id:nid(),name,pages:[page],done:false,points:[],setups:[],activeId:null,nextNo:1,datum:{k:null,g:null,f:null}};
+  S.floors.push(f);loadFloor(f);return f;
+}
+function eachFloor(cb){
+  syncOut();const keep=S.wf;
+  for(const f of S.floors){loadFloor(f);CALC=compute();TAGS=calcTags();cb(f);}
+  loadFloor(keep===null?null:floorById(keep));CALC=compute();TAGS=calcTags();
+}
+function updateFloorUi(){
+  const f=curFloor(),n=$('#floorName');if(!n)return;
+  n.textContent=f?f.name+(f.done?'（完了）':''):'未開始';
+  $('#bDoneF').textContent=f&&f.done?'↩ 測定再開':'✔ 測定完了';$('#bDoneF').classList.toggle('dis',!f);
+  $('#noteOpts').style.display=S.mode==='note'?'inline-flex':'none';
+  document.querySelectorAll('#noteCols .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===S.pen.color));
+  const w=$('#noteW');if(w)w.value=String(S.pen.w);
+}
 function applySettings(s){if(!s)return;S.unit=s.unit||'mm';S.labelMode=s.labelMode||'h';S.mk=s.mk||1;S.finger=!!s.finger;S.snapOn=s.snapOn!==false;S.orthoAuto=s.orthoAuto!==false;S.base=['p1','kbm','gl','fl'].includes(s.base)?s.base:'p1';if(s.penColor)S.pen.color=s.penColor;if(s.penW)S.pen.w=s.penW;syncBar();}
 function snapshot(){undoSt.push(JSON.stringify(dataOf()));if(undoSt.length>60)undoSt.shift();redoSt.length=0;}
 function undo(){if(!undoSt.length)return toast('これ以上戻せません');redoSt.push(JSON.stringify(dataOf()));restoreData(JSON.parse(undoSt.pop()));refresh();}
@@ -777,7 +842,8 @@ function selectAt(x,y){
   S.selA=best?best.id:null;updateHud();draw();
 }
 function setMode(m){
-  S.mode=m;S.tmp=null;S.hover=null;
+  const prev=S.mode;S.mode=m;S.tmp=null;S.hover=null;
+  if(m==='note')toast('✍ 注釈モード：手書きのみ（長押しで測点は入りません）');else if(prev==='note'&&m==='write')toast('📍 測点モード：ペンで長押しすると測点を入力できます');
   if(m!=='write')S.pickRef=false;
   if(MEAS.includes(m))S.sel=null;S.selA=null;S.cross=false;
   syncBar();updateHud();draw();
@@ -943,6 +1009,11 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');cl
 
 /* ---------- 測点の追加・編集 ---------- */
 async function addPoint(x,y){
+  if(S.wf===null){
+    if(S.floors.length){toast('このページはまだ測定が始まっていません。「▶ 測定開始」を押してください');return;}
+    snapshot();createFloor('1階',S.pageNo);
+  }
+  if(floorDone()){toast('この階は測定完了です。続けるには「↩ 測定再開」を押してください');return;}
   const first=!S.setups.length;
   const s=first?null:S.setups.find(z=>z.id===S.activeId);
   if(!first&&(!s||CALC.hi[s.id]===undefined)){toast('この設置は基準が未確定です');return;}
@@ -1013,6 +1084,7 @@ function deleteLastSetup(){
 }
 function startPick(){
   if(!S.bg)return toast('先に図面を開いてください');
+  if(floorDone())return toast('この階は測定完了です。「↩ 測定再開」で続けられます');
   if(!S.setups.length)return toast('先に基準点1（±0）を設定してください');
   S.pickRef=!S.pickRef;if(S.pickRef){S.mode='write';S.tmp=null;S.hover=null;syncBar();}updateHud();
   if(S.pickRef)toast('新しい位置から覗ける既存の測点をタップ');
@@ -1100,6 +1172,7 @@ cv.addEventListener('pointerdown',e=>{
   }
   if(!drawing){g=mkPan(e.pointerId,p.x,p.y);return;}
   if(erasing){g={kind:'erase',id:e.pointerId,snap:false};eraseAt(p.x,p.y);return;}
+  if(S.mode==='note'){const pl0=toPlan(p.x,p.y);g={kind:'note',id:e.pointerId,stroke:{page:S.pageNo,color:S.pen.color,w:S.pen.w,pts:[pl0.x,pl0.y]}};return;}
   const gg={kind:'write',id:e.pointerId,sx:p.x,sy:p.y,moved:false,fired:false,stroke:null};
   g=gg;lp={x:p.x,y:p.y,t0:performance.now()};tickLP();
   gg.timer=setTimeout(()=>{
@@ -1146,6 +1219,10 @@ cv.addEventListener('pointermove',e=>{
     }
     g.shift=e.shiftKey||g.shift;g.lx=p.x;g.ly=p.y;
     S.hover=pickPt(p.x,p.y,{shift:g.shift,touch:g.touch});drawSoon();
+  }else if(g.kind==='note'){
+    const evs=(e.getCoalescedEvents&&e.getCoalescedEvents())||[],list=evs.length?evs:[e],a=g.stroke.pts,minD=0.6/S.view.s;
+    for(const ev of list){const qq=pos(ev),pl=toPlan(qq.x,qq.y);if(Math.hypot(pl.x-a[a.length-2],pl.y-a[a.length-1])>=minD)a.push(pl.x,pl.y);}
+    drawSoon();
   }else if(g.kind==='write'){
     // 押したまま動かしても手書きはせず、画面移動にする（長押しで測点追加）
     if(Math.hypot(p.x-g.sx,p.y-g.sy)<MOVE_TH)return;
@@ -1168,6 +1245,7 @@ function endPtr(e){
   if(g.kind==='lbl'){const mv=g.moved;g=null;if(mv)refresh();else draw();return;}
   if(g.kind==='pt'){const gg=g;g=null;S.cross=false;S.hover=null;const px=gg.lx!==undefined?gg.lx:gg.sx,py=gg.ly!==undefined?gg.ly:gg.sy;if(e.type!=='pointercancel')onTap(px,py,{shift:gg.shift,touch:gg.touch});else draw();return;}
   if(g.kind==='pan'&&g.selTap&&!g.moved){const gg=g;g=null;selectAt(gg.sx,gg.sy);return;}
+  if(g.kind==='note'){const gg=g;g=null;const a=gg.stroke.pts;if(a.length===2)a.push(a[0],a[1]);if(e.type!=='pointercancel'&&a.length>=4){snapshot();S.strokes.push(gg.stroke);refresh();}else draw();return;}
   if(g.kind==='write'&&g.stroke&&g.stroke.pts.length>=4){snapshot();S.strokes.push(g.stroke);g=null;refresh();return;}
   if(g.kind==='mk'){
     const gp=g.p,moved=g.moved,wasSel=g.sel;g=null;
@@ -1256,12 +1334,12 @@ async function showPage(n){
     if(tok!==renderTok)return;
     S.bg=c;
   }
-  S.W=S.bg.width;S.H=S.bg.height;S.pageNo=n;S.tmp=null;S.hover=null;fitView();refresh();scheduleHi();
+  S.W=S.bg.width;S.H=S.bg.height;S.pageNo=n;activateFloor(n);S.tmp=null;S.hover=null;fitView();refresh();scheduleHi();
 }
 async function openFile(f,skipConfirm){
   if(!f)return false;
   if(!S.siteId){toast('現場が選択されていません');return false;}
-  const hasData=S.points.length||S.strokes.length;
+  const hasData=allPts().length||S.strokes.length;
   const replacing=!!S.bg&&!!hasData;
   if(replacing&&!skipConfirm&&!confirm('この現場の図面を差し替えます。測点・手書きデータは消去されます。\nよろしいですか？\n（別の図面は「現場管理」で新しい現場を作ると別々に保存できます）'))return false;
   const old={bytes:S.bytes,kind:S.kind,mime:S.mime,fileName:S.fileName,pdfDoc:S.pdfDoc,imgCanvas:S.imgCanvas,numPages:S.numPages};
@@ -1282,13 +1360,16 @@ function download(blob,name){const a=document.createElement('a');a.href=URL.crea
 const stamp=()=>new Date().toISOString().slice(0,10);
 const baseName=()=>(S.siteName||S.fileName||'site').replace(/[\\/:*?"<>|]/g,'_');
 function exportCsv(){
-  if(!S.points.length)return toast('測点がありません');
-  const rows=[['測点No','測定場所','設置','読み値(mm)','設置基準点との差(mm)','基準点1からの高さ(mm)','KBMからの高さ(mm)','GLからの高さ(mm)','FLからの高さ(mm)','測定位置X','測定位置Y','ページ']];
-  for(const p of [...S.points].sort((a,b)=>a.no-b.no)){
-    const s=S.setups.find(z=>z.id===p.setupId);
-    const rel=p.id===s.refPointId?0:s.refReading-p.reading;
-    rows.push([p.no,'"'+String(p.note||'').replace(/"/g,'""')+'"','設置'+(s.idx+1),p.reading,rel,CALC.elev[p.id]??'',heightIn(p.id,'kbm')??'',heightIn(p.id,'gl')??'',heightIn(p.id,'fl')??'',Math.round(p.ax),Math.round(p.ay),p.page]);
-  }
+  if(!allPts().length)return toast('測点がありません');
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const rows=[['フロア','測点No','測定場所','設置','読み値(mm)','設置基準点との差(mm)','基準点1からの高さ(mm)','KBMからの高さ(mm)','GLからの高さ(mm)','FLからの高さ(mm)','測定位置X','測定位置Y','ページ']];
+  eachFloor(f=>{
+    for(const p of [...S.points].sort((a,b)=>a.no-b.no)){
+      const s=S.setups.find(z=>z.id===p.setupId);if(!s)continue;
+      const rel=p.id===s.refPointId?0:s.refReading-p.reading;
+      rows.push([q(f.name),p.no,q(p.note),'設置'+(s.idx+1),p.reading,rel,CALC.elev[p.id]??'',heightIn(p.id,'kbm')??'',heightIn(p.id,'gl')??'',heightIn(p.id,'fl')??'',Math.round(p.ax),Math.round(p.ay),p.page]);
+    }
+  });
   const csv='\ufeff'+rows.map(r=>r.join(',')).join('\r\n');
   download(new Blob([csv],{type:'text/csv'}),`${baseName()}_高さ_${stamp()}.csv`);
 }
@@ -1317,15 +1398,21 @@ function pdfDrawPage(n){
   return c;
 }
 function pdfTablePages(){
-  const pts=[...S.points].sort((a,b)=>a.no-b.no);if(!pts.length&&!S.meas.length)return [];
+  if(!S.floors.length)return pdfTableOne('',true);
+  const out=[];let first=true;
+  eachFloor(f=>{out.push(...pdfTableOne(f.name,first));first=false;});
+  return out;
+}
+function pdfTableOne(fname,withMeas){
+  const pts=[...S.points].sort((a,b)=>a.no-b.no);if(!pts.length&&!(withMeas&&S.meas.length))return [];
   const u=unitLabel(),cols=['測点','測定場所','設置','読み値(mm)',`設置基準比(${u})`,`基準点1比(${u})`];if(S.base!=='p1')cols.push(`${BASE_NAME[S.base]}比(${u})`);
   const rows=pts.map(p=>{const s=S.setups.find(z=>z.id===p.setupId),rel=s&&p.id===s.refPointId?0:(s?s.refReading-p.reading:0);
     const r=[String(p.no),p.note||'','設置'+(s?s.idx+1:'?'),fmtR(p.reading),fmtH(rel),fmtH(CALC.elev[p.id])];if(S.base!=='p1')r.push(fmtH(heightIn(p.id,S.base)));return r;});
-  S.meas.forEach((q,i)=>{const d=distMM(q.a,q.b),r=['距離'+(i+1),q.page+'頁',fmtMM(d),fmtM(d),''];while(r.length<cols.length)r.push('');rows.push(r);});
+  if(withMeas)S.meas.forEach((q,i)=>{const d=distMM(q.a,q.b),r=['距離'+(i+1),q.page+'頁',fmtMM(d),fmtM(d),''];while(r.length<cols.length)r.push('');rows.push(r);});
   const cw=2480,ch=1754,m=50,hd=70,rh=64,per=Math.floor((ch-2*m-hd-rh)/rh),out=[];
   for(let o=0;o<rows.length;o+=per){
     const c=document.createElement('canvas');c.width=cw;c.height=ch;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cw,ch);
-    x.textBaseline='middle';x.fillStyle='#111';x.font='bold 38px sans-serif';x.textAlign='left';x.fillText(`${S.siteName||''}　測点一覧（${BASE_NAME[S.base]}基準）`,m,m+30);
+    x.textBaseline='middle';x.fillStyle='#111';x.font='bold 38px sans-serif';x.textAlign='left';x.fillText(`${S.siteName||''}${fname?'　['+fname+']':''}　測点一覧（${BASE_NAME[S.base]}基準）`,m,m+30);
     const w=(cw-2*m)/cols.length;let y=m+hd;
     x.fillStyle='#e6eaf0';x.fillRect(m,y,cw-2*m,rh);x.fillStyle='#111';x.font='bold 32px sans-serif';x.textAlign='center';
     cols.forEach((t,i)=>x.fillText(t,m+w*i+w/2,y+rh/2));y+=rh;x.font='34px sans-serif';
@@ -1343,7 +1430,7 @@ async function exportPdf(){
     let doc=null;
     const add=c=>{const o=c.width>=c.height?'l':'p';if(!doc)doc=new jsPDF({orientation:o,unit:'mm',format:'a3'});else doc.addPage('a3',o);doc.addImage(c.toDataURL('image/jpeg',.92),'JPEG',0,0,o==='l'?420:297,o==='l'?297:420);};
     for(let n=1;n<=(S.numPages||1);n++){
-      const has=S.points.some(p=>p.page===n)||S.refs.some(r=>r.page===n)||S.meas.some(q=>q.page===n)||S.strokes.some(t=>t.page===n);
+      const has=allPts().some(p=>p.page===n)||S.refs.some(r=>r.page===n)||S.meas.some(q=>q.page===n)||S.strokes.some(t=>t.page===n);
       if(!has&&n!==cur)continue;
       if(S.pageNo!==n)await showPage(n);
       add(pdfDrawPage(n));
@@ -1386,6 +1473,9 @@ function updateHud(){
   else if(S.pickRef)t='🔄 新しいレベル位置から覗ける【既存の測点】をタップして基準点にします <button id="hCancel">中止</button>';
   else if(S.mode==='sel')t='👆 選択：仮線・延長線・距離の線／寸法の文字を押さえて選択。寸法の文字を動かすと、水平または垂直に全体が移動します';
   else if(MEAS.includes(S.mode))t=measHint();
+  else if(S.mode==='note')t='✍ 注釈モード：ペン（指で描く設定時は指）でなぞって手書き注釈を書き込みます。長押しでも測点は入りません。測定を続けるときは「📍 測点」を押してください';
+  else if(S.wf===null&&S.floors.length)t='▶ このページはまだ測定が始まっていません。「▶ 測定開始」を押すと、この階の基準点1(±0)から測定できます';
+  else if(floorDone())t='✔ この階は測定完了です。「↩ 測定再開」で続きを測定／「▶ 測定開始」で別の階（別ページ）の測定を始められます';
   else if(!S.setups.length)t='① レベルを据え、±0にしたい点の位置をペンで【長押し】→ 読み値を入力（赤色の基準点1）';
   else{const s=S.setups.find(z=>z.id===S.activeId)||S.setups[S.setups.length-1];t=`設置${s.idx+1} 入力中：覗ける測点をペンで【長押し】→ 読み値入力（次は測点${S.nextNo}）／ 押したまま動かすと画面移動`;}
   let selBar='';
@@ -1408,7 +1498,7 @@ $('#hud').addEventListener('click',e=>{
   else if(id==='hReset'&&p){snapshot();p.x=p.ax;p.y=p.ay;refresh();}
   else if(id==='hDesel'){S.sel=null;refresh();}
 });
-function syncBar(){
+function syncBar(){updateFloorUi();
   document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===S.mode));
   $('#bSnap').classList.toggle('on',S.snapOn);$('#bOrtho').classList.toggle('on',S.orthoAuto);
   document.querySelectorAll('#bases button').forEach(b=>{b.classList.toggle('on',b.dataset.base===S.base);b.classList.toggle('dis',baseOffset(b.dataset.base)===null);});
@@ -1492,7 +1582,7 @@ $('#bOpen').onclick=()=>$('#file').click();
 $('#bSite').onclick=openSiteManager;
 $('#bClean').onclick=()=>openCleanup(false);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)flushSave();});
-$('#file').onchange=e=>{openFile(e.target.files[0]);e.target.value='';};
+
 $('#bLoad').onclick=()=>$('#jfile').click();
 $('#jfile').onchange=e=>{loadProject(e.target.files[0]);e.target.value='';};
 $('#bSave').onclick=saveProject;$('#bCsv').onclick=exportCsv;$('#bPng').onclick=exportPng;$('#bPdf').onclick=exportPdf;
@@ -1529,10 +1619,116 @@ new ResizeObserver(resize).observe(wrap);
 if(innerWidth<900)$('#panel').classList.add('closed');
 syncPanelUi();
 
+
+/* ---------- フロア操作・注釈・ページ追加 ---------- */
+async function startFloorUi(){
+  if(!S.bg)return toast('先に図面を開いてください');
+  const ex=floorForPage(S.pageNo);
+  if(ex){toast(ex.done?`このページは「${ex.name}」で測定済みです。再測定は「↩ 測定再開」、別の階は別ページで開始してください`:`このページは「${ex.name}」を測定中です`);return;}
+  const name=await askText({title:'▶ 測定開始',note:`ページ${S.pageNo}（この階）の測定名を入力してください。この階の基準点1(±0)から新しく測定します。`,value:`${S.floors.length+1}階`});
+  closeModal();if(!name)return;
+  snapshot();createFloor(name,S.pageNo);setMode('write');refresh();
+  toast(`「${name}」の測定を開始。ペンで長押しして基準点1(±0)を設定します`);
+}
+function toggleDoneFloor(){
+  const f=curFloor();if(!f)return toast('このページはまだ測定が始まっていません');
+  snapshot();f.done=!f.done;S.pickRef=false;refresh();
+  toast(f.done?`「${f.name}」の測定を完了しました。別の階は別ページで「▶ 測定開始」`:`「${f.name}」の測定を再開します`);
+}
+async function openFloorMgr(){
+  await flushSave();syncOut();
+  const m=$('#modal');m.classList.add('show');m.onchange=null;
+  const render=()=>{
+    const rows=S.floors.map(f=>`<div class="site ${f.id===S.wf?'cur':''}" data-id="${f.id}">
+      <div class="sn"><b>${esc(f.name)}</b>${f.done?'<em style="background:#2e7d32">完了</em>':'<em>測定中</em>'}${f.id===S.wf?'<small>表示中</small>':''}</div>
+      <div class="sm">ページ ${esc((f.pages||[]).join('・')||'-')}／測点${(f.points||[]).length}／設置${(f.setups||[]).length}</div>
+      <div class="sb"><button data-a="go" class="pri">開く</button><button data-a="done">${f.done?'↩ 再開':'✔ 完了'}</button><button data-a="ren">名前変更</button><button data-a="del" class="danger">削除</button></div></div>`).join('');
+    m.innerHTML=`<div class="box wide"><h3>🏢 フロア別の測定</h3><p class="note">図面1ページ＝1つの階として、階ごとに基準点1(±0)から測定を分けて管理します。</p>${rows||'<p class="note">まだ測定がありません</p>'}<div class="btns"><button id="fmNew" class="acc">▶ このページで測定開始</button><span class="sp"></span><button id="fmClose">閉じる</button></div></div>`;
+  };
+  render();
+  m.onclick=async e=>{
+    const b=e.target.closest('button');if(!b)return;
+    if(b.id==='fmClose'){closeModal();return;}
+    if(b.id==='fmNew'){closeModal();startFloorUi();return;}
+    const row=b.closest('.site');if(!row)return;
+    const f=S.floors.find(x=>String(x.id)===row.dataset.id);if(!f)return;
+    const a=b.dataset.a;
+    if(a==='go'){closeModal();if(S.bg)await showPage((f.pages||[1])[0]||1);return;}
+    if(a==='done'){snapshot();f.done=!f.done;refresh();render();return;}
+    if(a==='ren'){const n=await askText({title:'フロア名の変更',value:f.name});if(n){snapshot();f.name=n;refresh();}render();return;}
+    if(a==='del'){
+      if(!confirm(`「${f.name}」の測点・設置データを削除します。よろしいですか？`))return;
+      snapshot();S.floors=S.floors.filter(x=>x!==f);if(S.wf===f.id)loadFloor(null);refresh();render();
+    }
+  };
+}
+$('#bFloor').onclick=openFloorMgr;$('#bStartF').onclick=startFloorUi;$('#bDoneF').onclick=toggleDoneFloor;
+$('#noteCols').innerHTML=PEN_COLORS.map(c=>`<button class="sw" data-c="${c}" style="background:${c}" title="色"></button>`).join('');
+$('#noteCols').onclick=e=>{const b=e.target.closest('.sw');if(!b)return;S.pen.color=b.dataset.c;scheduleSave();syncBar();};
+$('#noteW').onchange=e=>{S.pen.w=parseFloat(e.target.value)||2.5;scheduleSave();};
+
+// 複数PDF・画像をページとして結合／追加
+async function loadPdfLib(){
+  if(window.PDFLib)return;
+  await new Promise((res,rej)=>{const t=document.createElement('script');t.src='https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';t.onload=res;t.onerror=()=>rej(new Error('PDF結合ライブラリを読み込めません。通信環境を確認してください。'));document.head.appendChild(t);});
+}
+async function imgBytesToPng(it){
+  const url=URL.createObjectURL(new Blob([it.bytes],{type:it.mime||'image/png'}));
+  const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('画像を読み込めません'));i.src=url;});
+  const k=Math.min(1,4000/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');
+  c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+  const b=await new Promise(res=>c.toBlob(res,'image/png'));return new Uint8Array(await b.arrayBuffer());
+}
+async function docFromAny(items,base){
+  await loadPdfLib();const{PDFDocument}=PDFLib;
+  const dst=base?await PDFDocument.load(base,{ignoreEncryption:true}):await PDFDocument.create();
+  for(const it of items){
+    if(it.kind==='pdf'){const src=await PDFDocument.load(it.bytes,{ignoreEncryption:true});const pgs=await dst.copyPages(src,src.getPageIndices());pgs.forEach(q=>dst.addPage(q));}
+    else{
+      const png=await imgBytesToPng(it),img=await dst.embedPng(png),sc=Math.min(1190/Math.max(img.width,img.height),1),w=img.width*sc,h=img.height*sc;
+      const pg=dst.addPage([w,h]);pg.drawImage(img,{x:0,y:0,width:w,height:h});
+    }
+  }
+  return await dst.save();
+}
+const u8buf=u=>u.buffer.slice(u.byteOffset,u.byteOffset+u.byteLength);
+const fileItem=async f=>({bytes:await f.arrayBuffer(),kind:f.type.startsWith('image/')?'image':'pdf',mime:f.type});
+async function appendItems(items){
+  if(!S.siteId){toast('現場が選択されていません');return false;}
+  const old={bytes:S.bytes,kind:S.kind,mime:S.mime,fileName:S.fileName,pdfDoc:S.pdfDoc,imgCanvas:S.imgCanvas,numPages:S.numPages};
+  try{
+    const all=[];let base=null;
+    if(S.bytes){if(S.kind==='pdf')base=S.bytes;else all.push({bytes:S.bytes,kind:'image',mime:S.mime});}
+    all.push(...items);
+    const u=await docFromAny(all,base),start=(S.bytes?S.numPages:0)+1;
+    S.bytes=u8buf(u);S.kind='pdf';S.mime='application/pdf';
+    S.fileName=(S.fileName?S.fileName.replace(/\.[^.]+$/,''):'図面')+'.pdf';
+    await loadPdfDoc();S.imgCanvas=null;
+    await DB.set('sf:'+S.siteId,{bytes:S.bytes,kind:S.kind,mime:S.mime,fileName:S.fileName});
+    await showPage(start);
+    toast(`ページを追加しました（全${S.numPages}ページ）。別の階は「▶ 測定開始」で新しい測定を始められます`);
+    return true;
+  }catch(err){Object.assign(S,old);toast('ページを追加できませんでした：'+err.message);return false;}
+}
+async function openFiles(files){
+  files=files.filter(Boolean);if(!files.length)return;
+  if(files.length===1)return openFile(files[0]);
+  if(!S.siteId)return toast('現場が選択されていません');
+  if(S.bg&&(allPts().length||S.strokes.length)&&!confirm('この現場の図面を、選んだ複数の図面（ページ順）に差し替えます。測点・手書きデータは消去されます。\nよろしいですか？\n（今の図面に追加したい場合は「➕ ページ追加」を使います）'))return;
+  try{
+    toast('図面を結合中…');
+    const items=await Promise.all(files.map(fileItem)),u=await docFromAny(items,null);
+    await openFile(new File([u],`図面_${files.length}枚_${stamp()}.pdf`,{type:'application/pdf'}),true);
+  }catch(err){toast('図面を結合できませんでした：'+err.message);}
+}
+$('#file').onchange=e=>{const fs=[...e.target.files];e.target.value='';openFiles(fs);};
+$('#bAdd').onclick=()=>$('#file2').click();
+$('#file2').onchange=async e=>{const fs=[...e.target.files];e.target.value='';if(!fs.length)return;try{await appendItems(await Promise.all(fs.map(fileItem)));}catch(err){toast('追加できませんでした：'+err.message);}};
+
 /* ---------- 手書き作図 → PDF変換 ---------- */
 // 図面がない現場用：用紙(mm)上に手書きし、ベクターPDFに変換して通常のPDF図面として読み込む
 const DRW={open:false,siteId:null,paper:'a3l',tool:'pen',color:PEN_COLORS[0],w:0.5,dash:false,size:8,grid:true,auto:true,
-  items:[],sel:[],undo:[],redo:[],view:{s:1,tx:0,ty:0},cur:null,ptrs:new Map(),gest:null,saveT:null};
+  pages:[],pi:0,imgs:{},items:[],sel:[],undo:[],redo:[],view:{s:1,tx:0,ty:0},cur:null,ptrs:new Map(),gest:null,saveT:null};
 const PAPERS={a3l:[420,297],a3p:[297,420],a4l:[297,210],a4p:[210,297]};
 const DFONT='"Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif';
 const dcv=$('#dCv'),dwrap=$('#dWrap');
@@ -1551,8 +1747,10 @@ function dSync(){
   document.querySelectorAll('#dCols .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===DRW.color));
   $('#dDash').classList.toggle('on',DRW.dash);$('#dAuto').classList.toggle('on',DRW.auto);$('#dGrid').classList.toggle('on',DRW.grid);$('#dFinger').classList.toggle('on',S.finger);
   $('#dW').value=String(DRW.w);$('#dSize').value=String(DRW.size);$('#dPaper').value=DRW.paper;
-  $('#dHint').style.display=DRW.items.length?'none':'block';
+  $('#dHint').style.display=(DRW.items.length||DRW.pages.length>1)?'none':'block';
   $('#dDelSel').style.display=DRW.sel.length?'':'none';$('#dDelSel').textContent=`🗑 選択を削除（${DRW.sel.length}）`;
+  $('#dImgG').style.display=DRW.sel.some(i=>i.t==='img')?'inline-flex':'none';
+  $('#dPg').textContent=`${DRW.pi+1}/${DRW.pages.length}`;
   dcv.style.cursor=DRW.tool==='hand'?'grab':DRW.tool==='text'?'text':'crosshair';
 }
 function dResize(){
@@ -1567,6 +1765,7 @@ function dFit(){
 
 /* --- 描画 --- */
 function dPaint(ctx,it){
+  if(it.t==='img'){const o=DRW.imgs[it.id];if(o&&o.el&&o.el.naturalWidth!==0&&o.el.complete!==false){try{ctx.drawImage(o.el,it.a.x,it.a.y,it.b.x-it.a.x,it.b.y-it.a.y);}catch(_){}}return;}
   ctx.strokeStyle=it.c;ctx.fillStyle=it.c;ctx.lineWidth=it.w||0.5;ctx.lineCap='round';ctx.lineJoin='round';
   if(it.t==='text'){
     ctx.setLineDash([]);ctx.font=`${it.size}px ${DFONT}`;ctx.textBaseline='alphabetic';ctx.textAlign='left';ctx.fillText(it.s,it.x,it.y);return;
@@ -1594,7 +1793,7 @@ function dDraw(){
   }
   ctx.save();ctx.beginPath();ctx.rect(0,0,PW,PH);ctx.clip();
   for(const it of DRW.items)dPaint(ctx,it);
-  if(DRW.cur&&DRW.cur.t!=='erase'&&DRW.cur.t!=='sel')dPaint(ctx,DRW.cur);
+  if(DRW.cur&&DRW.cur.t!=='erase'&&DRW.cur.t!=='sel'&&DRW.cur.t!=='mv')dPaint(ctx,DRW.cur);
   ctx.restore();
   // 選択中の図形と選択枠
   ctx.save();ctx.lineWidth=1.5/v.s;ctx.setLineDash([5/v.s,3/v.s]);ctx.strokeStyle='#ef6c00';
@@ -1611,11 +1810,17 @@ function dChanged(){DRW.sel=[];dDraw();dSync();dSave();}
 function dUndo(){if(!DRW.undo.length)return toast('これ以上戻せません');DRW.redo.push(JSON.stringify(DRW.items));DRW.items=JSON.parse(DRW.undo.pop());dChanged();}
 function dRedo(){if(!DRW.redo.length)return;DRW.undo.push(JSON.stringify(DRW.items));DRW.items=JSON.parse(DRW.redo.pop());dChanged();}
 function dSave(){clearTimeout(DRW.saveT);DRW.saveT=setTimeout(dFlush,400);}
+function dStorePage(){const pg=DRW.pages[DRW.pi];if(pg){pg.paper=DRW.paper;pg.items=DRW.items;}}
 async function dFlush(){
-  clearTimeout(DRW.saveT);if(!DRW.siteId)return;
-  try{await DB.set('dr:'+DRW.siteId,{paper:DRW.paper,items:DRW.items});}catch(e){console.warn(e);}
+  clearTimeout(DRW.saveT);if(!DRW.siteId)return;dStorePage();
+  const used=new Set();DRW.pages.forEach(pg=>pg.items.forEach(it=>{if(it.t==='img')used.add(it.id);}));
+  const imgs={};used.forEach(id=>{if(DRW.imgs[id])imgs[id]=DRW.imgs[id].src;});
+  try{await DB.set('dr:'+DRW.siteId,{pages:DRW.pages,pi:DRW.pi,imgs});}catch(e){console.warn(e);toast('下書きを保存できませんでした（容量不足の可能性）');}
 }
-
+function dLoadPage(i){
+  DRW.pi=Math.max(0,Math.min(i,DRW.pages.length-1));const pg=DRW.pages[DRW.pi];
+  DRW.paper=pg.paper;DRW.items=pg.items;DRW.sel=[];DRW.undo=[];DRW.redo=[];DRW.cur=null;dSync();dFit();
+}
 /* --- 消しゴム用の当たり判定 --- */
 function dSeg(px,py,ax,ay,bx,by){
   const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;let t=l?((px-ax)*dx+(py-ay)*dy)/l:0;t=Math.max(0,Math.min(1,t));
@@ -1627,6 +1832,7 @@ function dHit(it,m,r){
     const P=it.pts;if(P.length===1)return Math.hypot(m.x-P[0][0],m.y-P[0][1])<=q;
     for(let i=1;i<P.length;i++)if(dSeg(m.x,m.y,P[i-1][0],P[i-1][1],P[i][0],P[i][1])<=q)return true;return false;
   }
+  if(it.t==='img')return m.x>=it.a.x&&m.x<=it.b.x&&m.y>=it.a.y&&m.y<=it.b.y;
   if(it.t==='line')return dSeg(m.x,m.y,it.a.x,it.a.y,it.b.x,it.b.y)<=q;
   if(it.t==='rect'){
     const x0=Math.min(it.a.x,it.b.x),x1=Math.max(it.a.x,it.b.x),y0=Math.min(it.a.y,it.b.y),y1=Math.max(it.a.y,it.b.y);
@@ -1703,7 +1909,10 @@ function dStart(e,p){
   const m=dMM(p),t=DRW.tool;
   if(t==='text'){dAddText(m);return;}
   const meta={pid:e.pointerId,pType:e.pointerType,last:p};
-  if(t==='sel'){DRW.sel=[];DRW.cur={t:'sel',a:m,b:m,...meta};dSync();dDraw();return;}
+  if(t==='sel'){
+    if(DRW.sel.length){const r=Math.max(1.5,9/DRW.view.s);if(DRW.sel.some(it=>dInBox(it,m,r))){DRW.cur={t:'mv',lm:m,snapped:false,...meta};return;}}
+    DRW.sel=[];DRW.cur={t:'sel',a:m,b:m,...meta};dSync();dDraw();return;
+  }
   if(t==='erase'){DRW.cur={t:'erase',snapped:false,lm:m,...meta};if(dErase(m,DRW.cur))dChanged();return;}
   const base={c:DRW.color,w:DRW.w,d:DRW.dash};
   DRW.cur=t==='pen'?{...base,t:'pen',pts:[[m.x,m.y]],...meta}:{...base,t,a:m,b:m,...meta};
@@ -1711,6 +1920,7 @@ function dStart(e,p){
 }
 function dMove(e,p){
   const c=DRW.cur;c.last=p;
+  if(c.t==='mv'){const m=dMM(p),dx=m.x-c.lm.x,dy=m.y-c.lm.y;if(!c.snapped){dSnap();c.snapped=true;}for(const it of DRW.sel)dShift(it,dx,dy);c.lm=m;dDraw();return;}
   if(c.t==='erase'){const m=dMM(p),L=c.lm||m,step=Math.max(1,Math.max(1.5,9/DRW.view.s)*0.7),n=Math.max(1,Math.ceil(Math.hypot(m.x-L.x,m.y-L.y)/step));let h=false;for(let k=1;k<=n;k++)h=dErase({x:L.x+(m.x-L.x)*k/n,y:L.y+(m.y-L.y)*k/n},c)||h;c.lm=m;if(h)dChanged();return;}
   if(c.t==='pen'){
     const evs=(e.getCoalescedEvents&&e.getCoalescedEvents())||[];const list=evs.length?evs:[e],minD=1.2/DRW.view.s;
@@ -1724,33 +1934,93 @@ function dMove(e,p){
   }
   dDraw();
 }
-/* --- 手書き線の自動直線化：折れ点を抽出→ほぼ水平/垂直は軸に揃える→始終点が近ければ閉じる --- */
-function dRdp(P,eps){
-  if(P.length<3)return P.slice();
-  const a=P[0],b=P[P.length-1];let md=-1,mi=0;
-  for(let i=1;i<P.length-1;i++){const d=dSeg(P[i][0],P[i][1],a[0],a[1],b[0],b[1]);if(d>md){md=d;mi=i;}}
-  if(md<=eps)return[a,b];
-  return dRdp(P.slice(0,mi+1),eps).slice(0,-1).concat(dRdp(P.slice(mi),eps));
+/* --- 手書き線の自動直線化（v2）
+   折れ点抽出(RDP) → 短い引っかかり・角の丸み除去 → 区間ごとに水平/垂直/斜めを判定し同じ向きの連続区間を統合
+   → 各区間の元の点群に直線を当てはめ → 隣り合う直線の交点を角にする（角が斜めに欠けたりZ字に折れない） --- */
+function dRdpI(P,i0,i1,eps,out){
+  let md=-1,mi=-1;const a=P[i0],b=P[i1];
+  for(let i=i0+1;i<i1;i++){const d=dSeg(P[i][0],P[i][1],a[0],a[1],b[0],b[1]);if(d>md){md=d;mi=i;}}
+  if(mi>0&&md>eps){dRdpI(P,i0,mi,eps,out);dRdpI(P,mi,i1,eps,out);}else out.push(i1);
 }
+function dRdp(P,eps){if(P.length<3)return P.slice();const o=[0];dRdpI(P,0,P.length-1,eps,o);return o.map(i=>P[i]);}
 function dStraight(pts){
-  if(pts.length<3)return pts;
-  let len=0;for(let i=1;i<pts.length;i++)len+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+  const N=pts.length;if(N<3)return pts;
+  let len=0;for(let i=1;i<N;i++)len+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
   if(len<4)return pts;
-  const eps=Math.max(1,6/DRW.view.s);
-  let P=dRdp(pts,eps).map(q=>[q[0],q[1]]);
-  if(P.length<2)return pts;
-  const closed=P.length>=4&&Math.hypot(P[0][0]-P[P.length-1][0],P[0][1]-P[P.length-1][1])<Math.max(6,len*0.04);
-  if(closed)P[P.length-1]=[P[0][0],P[0][1]];
-  const TH=Math.tan(25*Math.PI/180); // 軸から25°以内なら水平・垂直に揃える
-  for(let i=0;i<P.length-1;i++){
-    const a=P[i],b=P[i+1],dx=b[0]-a[0],dy=b[1]-a[1];
-    if(Math.abs(dy)<=Math.abs(dx)*TH)b[1]=a[1];       // 水平
-    else if(Math.abs(dx)<=Math.abs(dy)*TH)b[0]=a[0];  // 垂直
+  const sc=DRW.view.s,eps=Math.max(1.5,10/sc),minL=Math.max(3,22/sc);
+  const D=(i,j)=>Math.hypot(pts[j][0]-pts[i][0],pts[j][1]-pts[i][1]);
+  const ang=(i,j)=>Math.atan2(pts[j][1]-pts[i][1],pts[j][0]-pts[i][0]);
+  const TH=25*Math.PI/180;
+  const cls=(i,j)=>{let a=Math.abs(ang(i,j))%Math.PI;if(a>Math.PI/2)a=Math.PI-a;return a<=TH?'H':(Math.PI/2-a)<=TH?'V':'F';};
+  let I=[0];dRdpI(pts,0,N-1,eps,I);
+  // 1) 短い区間を除去（書き始め・書き終わりの引っかかり、角の丸み・Z字の折り返し）
+  for(let g=0,ch=true;ch&&I.length>2&&g<200;g++){
+    ch=false;const n=I.length-1;
+    if(D(I[0],I[1])<minL){I.shift();ch=true;continue;}
+    if(D(I[n-1],I[n])<minL){I.pop();ch=true;continue;}
+    let mk=-1,ml=1e9;
+    for(let k=1;k<n-1;k++){const l=D(I[k],I[k+1]);if(l<minL&&l<ml){ml=l;mk=k;}}
+    if(mk>0){I.splice(mk,2,Math.round((I[mk]+I[mk+1])/2));ch=true;}
   }
-  if(closed){ // 閉じた図形：最後の点を始点に合わせ直す
-    const f=P[0],l=P[P.length-1];l[0]=f[0];l[1]=f[1];
+  // 1.5) 水平⇔垂直の角にできた短い斜め（角の丸み）を除去
+  for(let ch=true;ch&&I.length>2;){
+    ch=false;const n=I.length-1;
+    for(let k=0;k<n;k++){
+      if(cls(I[k],I[k+1])!=='F')continue;const l=D(I[k],I[k+1]);
+      const pc=k>0?cls(I[k-1],I[k]):null,nc=k<n-1?cls(I[k+1],I[k+2]):null;
+      if(pc&&nc&&pc!=='F'&&nc!=='F'&&pc!==nc&&l<Math.max(3*minL,0.2*Math.min(D(I[k-1],I[k]),D(I[k+1],I[k+2])))){I.splice(k,2,Math.round((I[k]+I[k+1])/2));ch=true;break;}
+      if(k===0&&nc&&nc!=='F'&&l<2*minL){I.shift();ch=true;break;}
+      if(k===n-1&&pc&&pc!=='F'&&l<2*minL){I.pop();ch=true;break;}
+    }
   }
-  return P;
+  // 2) 同じ向き（水平同士・垂直同士・ほぼ同じ角度の斜め同士）の連続区間を1本に統合
+  for(let ch=true;ch&&I.length>2;){
+    ch=false;
+    for(let k=1;k<I.length-1;k++){
+      const c1=cls(I[k-1],I[k]),c2=cls(I[k],I[k+1]);
+      let same=c1===c2&&c1!=='F';
+      if(!same&&c1==='F'&&c2==='F'){let d=Math.abs(ang(I[k-1],I[k])-ang(I[k],I[k+1]))%(2*Math.PI);if(d>Math.PI)d=2*Math.PI-d;same=d<12*Math.PI/180;}
+      if(same){I.splice(k,1);ch=true;break;}
+    }
+  }
+  // 3) 区間ごとに直線を当てはめ（両端15%は角の丸みの影響を避けるため除外）
+  const L=[];
+  for(let k=0;k<I.length-1;k++){
+    const i0=I[k],i1=I[k+1],c=cls(i0,i1),m=i1-i0,cut=m>=8?Math.floor(m*0.15):0;
+    let sx=0,sy=0,n=0;for(let i=i0+cut;i<=i1-cut;i++){sx+=pts[i][0];sy+=pts[i][1];n++;}
+    const cx=sx/n,cy=sy/n;let ux,uy;
+    if(c==='H'){ux=Math.sign(pts[i1][0]-pts[i0][0])||1;uy=0;}
+    else if(c==='V'){ux=0;uy=Math.sign(pts[i1][1]-pts[i0][1])||1;}
+    else{
+      let xx=0,yy=0,xy=0;for(let i=i0+cut;i<=i1-cut;i++){const dx=pts[i][0]-cx,dy=pts[i][1]-cy;xx+=dx*dx;yy+=dy*dy;xy+=dx*dy;}
+      const t=0.5*Math.atan2(2*xy,xx-yy);ux=Math.cos(t);uy=Math.sin(t);
+      if(ux*(pts[i1][0]-pts[i0][0])+uy*(pts[i1][1]-pts[i0][1])<0){ux=-ux;uy=-uy;}
+    }
+    L.push({cx,cy,ux,uy});
+  }
+  const proj=(l,p)=>{const t=(p[0]-l.cx)*l.ux+(p[1]-l.cy)*l.uy;return[l.cx+l.ux*t,l.cy+l.uy*t];};
+  const inter=(a,b)=>{const d=a.ux*b.uy-a.uy*b.ux;if(Math.abs(d)<0.08)return null;const t=((b.cx-a.cx)*b.uy-(b.cy-a.cy)*b.ux)/d;return[a.cx+a.ux*t,a.cy+a.uy*t];};
+  const closed=I.length>=4&&D(0,N-1)<Math.max(8,len*0.05);
+  const out=[];
+  out.push(closed?null:proj(L[0],pts[0]));
+  for(let k=1;k<L.length;k++){
+    const raw=pts[I[k]],q=inter(L[k-1],L[k]);
+    const lim=Math.max(3*eps,0.5*Math.min(D(I[k-1],I[k]),D(I[k],I[k+1])));
+    const hv=(L[k-1].uy===0&&L[k].ux===0)||(L[k-1].ux===0&&L[k].uy===0); // 水平と垂直の角は必ず交点で結ぶ
+    if(q&&(hv||Math.hypot(q[0]-raw[0],q[1]-raw[1])<=lim))out.push(q);
+    else{out.push(proj(L[k-1],raw));out.push(proj(L[k],raw));}
+  }
+  if(closed){
+    const q=inter(L[L.length-1],L[0]);const c=q&&Math.hypot(q[0]-pts[0][0],q[1]-pts[0][1])<=Math.max(4*eps,len*0.08)?q:proj(L[0],pts[0]);
+    out[0]=c;out.push([c[0],c[1]]);
+  }else out.push(proj(L[L.length-1],pts[N-1]));
+  return out.length>=2?out:pts;
+}
+function dInBox(it,m,pad){const b=dBox(it);return m.x>=b.x0-pad&&m.x<=b.x1+pad&&m.y>=b.y0-pad&&m.y<=b.y1+pad;}
+function dShift(it,dx,dy){
+  if(it.t==='pen')for(const q of it.pts){q[0]+=dx;q[1]+=dy;}
+  else if(it.t==='text'){it.x+=dx;it.y+=dy;}
+  else{it.a={x:it.a.x+dx,y:it.a.y+dy};it.b={x:it.b.x+dx,y:it.b.y+dy};}
 }
 function dBox(it){
   if(it.t==='pen'){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of it.pts){x0=Math.min(x0,q[0]);x1=Math.max(x1,q[0]);y0=Math.min(y0,q[1]);y1=Math.max(y1,q[1]);}return{x0,y0,x1,y1};}
@@ -1774,6 +2044,7 @@ function dDelSel(){
 function dEnd(){
   const c=DRW.cur;DRW.cur=null;if(!c)return;
   if(c.t==='erase'){dDraw();return;}
+  if(c.t==='mv'){dDraw();dSave();return;}
   if(c.t==='sel'){dSelect(c);return;}
   let it;
   if(c.t==='pen')it={t:'pen',c:c.c,w:c.w,d:c.d,pts:DRW.auto?dStraight(c.pts):c.pts};
@@ -1831,51 +2102,231 @@ function dTextPng(it){
   return{url:c.toDataURL('image/png'),w:w/K,h:h/K,ox:4/K,asc:it.size*1.1};
 }
 async function dMakePdf(){
-  await loadJsPdf();const{jsPDF}=window.jspdf;
-  const[PW,PH]=paperSz();
-  const doc=new jsPDF({orientation:PW>=PH?'l':'p',unit:'mm',format:DRW.paper.startsWith('a3')?'a3':'a4'});
-  doc.setLineCap('round');doc.setLineJoin('round');
-  for(const it of DRW.items){
-    if(it.t==='text'){const t=dTextPng(it);doc.addImage(t.url,'PNG',it.x-t.ox,it.y-t.asc,t.w,t.h);continue;}
-    doc.setDrawColor(it.c);doc.setFillColor(it.c);doc.setLineWidth(it.w);
-    if(it.d){const[a,b]=dDashOf(it);doc.setLineDashPattern([a,b],0);}else doc.setLineDashPattern([],0);
-    if(it.t==='pen'){
-      const P=it.pts;
-      if(P.length<2){doc.setLineDashPattern([],0);doc.circle(P[0][0],P[0][1],it.w/2,'F');}
-      else{const rel=[];for(let i=1;i<P.length;i++)rel.push([P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]]);doc.lines(rel,P[0][0],P[0][1],[1,1],'S',false);}
-    }else if(it.t==='line'){
-      doc.line(it.a.x,it.a.y,it.b.x,it.b.y);
-    }else if(it.t==='rect'){
-      doc.rect(Math.min(it.a.x,it.b.x),Math.min(it.a.y,it.b.y),Math.abs(it.b.x-it.a.x),Math.abs(it.b.y-it.a.y),'S');
+  dStorePage();
+  await loadJsPdf();const{jsPDF}=window.jspdf;let doc=null;
+  DRW.pages.forEach(pg=>{
+    const[PW,PH]=PAPERS[pg.paper]||PAPERS.a3l,fmt=pg.paper.startsWith('a3')?'a3':'a4',or=PW>=PH?'l':'p';
+    if(!doc)doc=new jsPDF({orientation:or,unit:'mm',format:fmt});else doc.addPage(fmt,or);
+    doc.setLineCap('round');doc.setLineJoin('round');
+    for(const it of pg.items){
+      if(it.t==='img'){const o=DRW.imgs[it.id];if(o)doc.addImage(o.src,'JPEG',it.a.x,it.a.y,it.b.x-it.a.x,it.b.y-it.a.y,it.id);continue;}
+      if(it.t==='text'){const t=dTextPng(it);doc.addImage(t.url,'PNG',it.x-t.ox,it.y-t.asc,t.w,t.h);continue;}
+      doc.setDrawColor(it.c);doc.setFillColor(it.c);doc.setLineWidth(it.w);
+      if(it.d){const[a,b]=dDashOf(it);doc.setLineDashPattern([a,b],0);}else doc.setLineDashPattern([],0);
+      if(it.t==='pen'){
+        const P=it.pts;
+        if(P.length<2){doc.setLineDashPattern([],0);doc.circle(P[0][0],P[0][1],it.w/2,'F');}
+        else{const rel=[];for(let i=1;i<P.length;i++)rel.push([P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]]);doc.lines(rel,P[0][0],P[0][1],[1,1],'S',false);}
+      }else if(it.t==='line'){
+        doc.line(it.a.x,it.a.y,it.b.x,it.b.y);
+      }else if(it.t==='rect'){
+        doc.rect(Math.min(it.a.x,it.b.x),Math.min(it.a.y,it.b.y),Math.abs(it.b.x-it.a.x),Math.abs(it.b.y-it.a.y),'S');
+      }
     }
-  }
-  doc.setLineDashPattern([],0);
+    doc.setLineDashPattern([],0);
+  });
   return doc.output('arraybuffer');
 }
 async function dMakePng(){
-  const[PW,PH]=paperSz(),k=3990/Math.max(PW,PH),c=document.createElement('canvas');
+  dStorePage();const pg=DRW.pages[0],[PW,PH]=PAPERS[pg.paper]||PAPERS.a3l,k=3990/Math.max(PW,PH),c=document.createElement('canvas');
   c.width=Math.round(PW*k);c.height=Math.round(PH*k);
   const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.scale(k,k);
-  for(const it of DRW.items)dPaint(x,it);
+  for(const it of pg.items)dPaint(x,it);
   return await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('画像を作成できません')),'image/png'));
 }
-async function dConvert(){
-  if(!DRW.items.length)return toast('先に手書きで図面を描いてください');
-  if((S.points.length||S.strokes.length)&&!confirm('この現場の図面を手書き図面に差し替えます。測点・手書きデータは消去されます。\nよろしいですか？'))return;
+// 地図を貼った下絵は、実寸の縮尺を自動設定（📏 縮尺 を手で設定しなくてよい）
+function dApplyScales(base,pdf){
+  let n=0;
+  DRW.pages.forEach((pg,i)=>{
+    const im=pg.items.find(it=>it.t==='img'&&it.gw>0);if(!im)return;
+    const[PW,PH]=PAPERS[pg.paper]||PAPERS.a3l,k=pdf?Math.min(4000/Math.max(PW,PH),17):3990/Math.max(PW,PH),gm=im.gw/(im.b.x-im.a.x);
+    S.scales[base+i]={a:{x:100*k,y:100*k},b:{x:200*k,y:100*k},mm:100*gm};n++;
+  });
+  if(n)refresh();return n;
+}
+async function dConvert(append){
+  dStorePage();
+  if(!DRW.pages.some(pg=>pg.items.length))return toast('先に手書きで図面を描いてください');
+  append=!!append&&!!S.bg;
+  if(!append&&(allPts().length||S.strokes.length)&&!confirm('この現場の図面を手書き図面に差し替えます。測点・手書きデータ・フロアは消去されます。\n（今の図面を残して追加するときは、キャンセルして「➕ 現在の図面に追加」を使います）\nよろしいですか？'))return;
   toast('PDFを作成中…');
   await dFlush();
-  let ok=false,why='',asImg=false;
-  try{const ab=await dMakePdf();ok=await openFile(new File([ab],`手書き図面_${stamp()}.pdf`,{type:'application/pdf'}),true);}
-  catch(err){why=err.message;}
-  if(!ok){ // PDFとして開けない環境(PDF.jsが使えない等)では高解像度画像として取り込む
+  let ok=false,why='',asImg=false,base=1;
+  try{
+    const ab=await dMakePdf();
+    if(append){base=(S.numPages||0)+1;ok=await appendItems([{bytes:ab,kind:'pdf',mime:'application/pdf'}]);}
+    else ok=await openFile(new File([ab],`手書き図面_${stamp()}.pdf`,{type:'application/pdf'}),true);
+  }catch(err){why=err.message;}
+  if(!ok&&!append&&DRW.pages.length===1){
     try{const b=await dMakePng();ok=await openFile(new File([b],`手書き図面_${stamp()}.png`,{type:'image/png'}),true);asImg=ok;}
     catch(err){why=why||err.message;}
   }
   if(ok){
+    const ns=dApplyScales(base,!asImg);
     dClose();setMode('write');
-    toast(asImg?'手書き図面を取り込みました（この環境ではPDFでなく高解像度画像）。ペンで長押しして基準点1(±0)を設定します':'手書き図面をPDF化しました。必要なら「📏 縮尺」を設定し、ペンで長押しして基準点1(±0)を設定します');
+    toast((asImg?'手書き図面を取り込みました（この環境ではPDFでなく高解像度画像）。':append?`手書き図面をページ${base}〜として追加しました。`:'手書き図面をPDF化しました。')+(ns?'地図の縮尺は自動設定済みです。':'')+'「▶ 測定開始」で測定できます');
   }else toast('変換に失敗しました：'+(why||'不明なエラー'));
 }
+
+/* --- ページ・画像 --- */
+function dSwitch(i){if(i<0||i>=DRW.pages.length)return;dStorePage();dLoadPage(i);dSave();}
+function dPageAdd(){dStorePage();DRW.pages.push({paper:DRW.paper,items:[]});dLoadPage(DRW.pages.length-1);dSave();toast(`ページ${DRW.pages.length}を追加しました（階ごとに1ページ）`);}
+function dPageDel(){
+  if(DRW.pages.length<2)return toast('最後の1ページは削除できません（「全消去」を使ってください）');
+  if(!confirm(`ページ${DRW.pi+1}を削除します。よろしいですか？`))return;
+  DRW.pages.splice(DRW.pi,1);dLoadPage(Math.min(DRW.pi,DRW.pages.length-1));dSave();
+}
+const dNewId=()=>'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function dPlaceImage(el,src,gw){
+  const id=dNewId();DRW.imgs[id]={src,el};
+  const[PW,PH]=paperSz(),mg=10,sc=Math.min((PW-2*mg)/el.width,(PH-2*mg)/el.height),w=el.width*sc,h=el.height*sc,x=(PW-w)/2,y=(PH-h)/2;
+  dSnap();const lead=DRW.items.filter(i=>i.t==='img').length;
+  const it={t:'img',id,a:{x,y},b:{x:x+w,y:y+h},gw:gw||0};
+  DRW.items.splice(lead,0,it);DRW.tool='sel';DRW.sel=[it];dDraw();dSync();dSave();
+}
+async function dAddImageFile(f){
+  try{
+    const url=URL.createObjectURL(f);
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('画像を読み込めません'));i.src=url;});
+    const k=Math.min(1,4000/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');
+    c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+    dPlaceImage(c,c.toDataURL('image/jpeg',.9),0);
+    toast('画像を貼り付けました。ドラッグで移動、「画像＋／－」で大きさを調整できます');
+  }catch(e){toast('画像を取り込めません：'+e.message);}
+}
+function dImgScale(f){
+  const im=DRW.sel.filter(i=>i.t==='img');if(!im.length)return;dSnap();
+  for(const it of im){const cx=(it.a.x+it.b.x)/2,cy=(it.a.y+it.b.y)/2,w=(it.b.x-it.a.x)*f/2,h=(it.b.y-it.a.y)*f/2;it.a={x:cx-w,y:cy-h};it.b={x:cx+w,y:cy+h};}
+  dDraw();dSave();
+}
+
+/* --- 地図（国土地理院タイル）から範囲指定で取り込み --- */
+const MAP={open:false,cx:0.5,cy:0.5,z:17,layer:'photo',mode:'pan',rect:null,tiles:new Map(),ptrs:new Map(),drag:null,pd:0,wt:0};
+const mcv=$('#mCv'),mwrap=$('#mWrap');
+const lng2x=l=>(l+180)/360,lat2y=la=>{const s=Math.sin(la*Math.PI/180);return 0.5-Math.log((1+s)/(1-s))/(4*Math.PI);};
+const x2lng=x=>x*360-180,y2lat=y=>{const n=Math.PI-2*Math.PI*y;return 180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n)));};
+MAP.cx=lng2x(139.8985);MAP.cy=lat2y(36.5592);
+const TILE={
+  photo:(z,x,y)=>`https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/${z}/${x}/${y}.jpg`,
+  std:(z,x,y)=>`https://cyberjapandata.gsi.go.jp/xyz/std/${z}/${x}/${y}.png`,
+  pale:(z,x,y)=>`https://cyberjapandata.gsi.go.jp/xyz/pale/${z}/${x}/${y}.png`
+};
+function mTile(z,x,y,layer){
+  const k=layer+'/'+z+'/'+x+'/'+y;let t=MAP.tiles.get(k);
+  if(!t){
+    const im=new Image();im.crossOrigin='anonymous';t={im,ok:false,err:false};
+    im.onload=()=>{t.ok=true;if(MAP.open)mDraw();};im.onerror=()=>{t.err=true;};im.src=TILE[layer](z,x,y);
+    MAP.tiles.set(k,t);if(MAP.tiles.size>700)MAP.tiles.delete(MAP.tiles.keys().next().value);
+  }
+  return t;
+}
+const mSz=()=>({W:mwrap.clientWidth||1,H:mwrap.clientHeight||1});
+const mPos=e=>{const r=mcv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};};
+const mWorld=p=>{const{W,H}=mSz(),N=256*2**MAP.z;return{x:MAP.cx+(p.x-W/2)/N,y:MAP.cy+(p.y-H/2)/N};};
+function mResize(){const{W,H}=mSz(),dpr=devicePixelRatio||1;mcv.width=Math.round(W*dpr);mcv.height=Math.round(H*dpr);mDraw();}
+function mDraw(){
+  const ctx=mcv.getContext('2d'),dpr=devicePixelRatio||1,{W,H}=mSz(),z=MAP.z,n=2**z,N=256*n;
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#cfd5dc';ctx.fillRect(0,0,W,H);
+  const x0=Math.floor((MAP.cx-W/2/N)*n),x1=Math.floor((MAP.cx+W/2/N)*n),y0=Math.max(0,Math.floor((MAP.cy-H/2/N)*n)),y1=Math.min(n-1,Math.floor((MAP.cy+H/2/N)*n));
+  for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
+    const t=mTile(z,((tx%n)+n)%n,ty,MAP.layer);
+    if(t.ok)ctx.drawImage(t.im,tx*256-MAP.cx*N+W/2,ty*256-MAP.cy*N+H/2,256.6,256.6);
+  }
+  const R=MAP.rect;
+  if(R){
+    const px=(R.x0-MAP.cx)*N+W/2,py=(R.y0-MAP.cy)*N+H/2,pw=(R.x1-R.x0)*N,ph=(R.y1-R.y0)*N;
+    ctx.fillStyle='rgba(239,108,0,.15)';ctx.fillRect(px,py,pw,ph);ctx.strokeStyle='#ef6c00';ctx.lineWidth=2.5;ctx.setLineDash([8,5]);ctx.strokeRect(px,py,pw,ph);ctx.setLineDash([]);
+  }
+  ctx.font='11px sans-serif';ctx.textAlign='right';ctx.fillStyle='rgba(0,0,0,.55)';const tx='出典：国土地理院タイル',tw=ctx.measureText(tx).width;
+  ctx.fillRect(W-tw-14,H-20,tw+10,16);ctx.fillStyle='#fff';ctx.fillText(tx,W-9,H-8);
+  $('#mZ').textContent=String(z);mInfo();
+}
+function mRectM(){
+  const R=MAP.rect;if(!R)return null;
+  const lat=y2lat((R.y0+R.y1)/2),k=40075016.686*Math.cos(lat*Math.PI/180);
+  return{w:(R.x1-R.x0)*k,h:(R.y1-R.y0)*k};
+}
+function mInfo(){
+  const r=mRectM(),e=$('#mInfo');
+  e.textContent=r&&r.w>1?`選択範囲：約 ${Math.round(r.w)}m × ${Math.round(r.h)}m　→「⬇ この範囲を取り込む」`:'① 住所検索 ② 「⬚ 範囲指定」で取り込みたい範囲をドラッグ ③ 「⬇ この範囲を取り込む」（取り込んだ地図は実寸の縮尺が自動設定されます）';
+}
+function mZoom(dz,px,py){
+  const nz=Math.max(5,Math.min(18,MAP.z+dz));if(nz===MAP.z)return;
+  const{W,H}=mSz();if(px===undefined){px=W/2;py=H/2;}
+  const w0=mWorld({x:px,y:py});MAP.z=nz;const N=256*2**nz;MAP.cx=w0.x-(px-W/2)/N;MAP.cy=w0.y-(py-H/2)/N;mDraw();
+}
+mcv.addEventListener('pointerdown',e=>{
+  e.preventDefault();try{mcv.setPointerCapture(e.pointerId);}catch(_){}
+  const p=mPos(e);MAP.ptrs.set(e.pointerId,p);
+  if(MAP.ptrs.size>=2){MAP.drag=null;const[a,b]=[...MAP.ptrs.values()];MAP.pd=Math.hypot(a.x-b.x,a.y-b.y)||1;return;}
+  MAP.drag={mode:MAP.mode,sx:p.x,sy:p.y,cx:MAP.cx,cy:MAP.cy};
+  if(MAP.mode==='rect'){const w=mWorld(p);MAP.drag.a=w;MAP.rect={x0:w.x,y0:w.y,x1:w.x,y1:w.y};mDraw();}
+});
+mcv.addEventListener('pointermove',e=>{
+  if(!MAP.ptrs.has(e.pointerId))return;
+  const p=mPos(e);MAP.ptrs.set(e.pointerId,p);
+  if(MAP.ptrs.size>=2){
+    const[a,b]=[...MAP.ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y)||1,mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    if(d/MAP.pd>1.6){mZoom(1,mx,my);MAP.pd=d;}else if(d/MAP.pd<0.62){mZoom(-1,mx,my);MAP.pd=d;}
+    return;
+  }
+  const dr=MAP.drag;if(!dr)return;const N=256*2**MAP.z;
+  if(dr.mode==='pan'){MAP.cx=dr.cx-(p.x-dr.sx)/N;MAP.cy=dr.cy-(p.y-dr.sy)/N;mDraw();}
+  else{const w=mWorld(p);MAP.rect={x0:Math.min(dr.a.x,w.x),y0:Math.min(dr.a.y,w.y),x1:Math.max(dr.a.x,w.x),y1:Math.max(dr.a.y,w.y)};mDraw();}
+});
+const mUp=e=>{MAP.ptrs.delete(e.pointerId);MAP.drag=null;if(MAP.ptrs.size===1){const q=[...MAP.ptrs.values()][0];MAP.drag={mode:MAP.mode,sx:q.x,sy:q.y,cx:MAP.cx,cy:MAP.cy};if(MAP.mode==='rect')MAP.drag=null;}mInfo();};
+mcv.addEventListener('pointerup',mUp);mcv.addEventListener('pointercancel',mUp);
+mcv.addEventListener('wheel',e=>{e.preventDefault();const t=Date.now();if(t-MAP.wt<180)return;MAP.wt=t;const p=mPos(e);mZoom(e.deltaY<0?1:-1,p.x,p.y);},{passive:false});
+mcv.addEventListener('contextmenu',e=>e.preventDefault());
+function mSetMode(m){MAP.mode=m;$('#mPan').classList.toggle('on',m==='pan');$('#mRect').classList.toggle('on',m==='rect');mcv.style.cursor=m==='rect'?'crosshair':'grab';}
+function mOpen(){MAP.open=true;$('#mapw').hidden=false;mSetMode('pan');mResize();}
+function mClose(){MAP.open=false;$('#mapw').hidden=true;}
+async function mSearch(){
+  const q=$('#mQ').value.trim();if(!q)return;
+  const m=q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,，\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if(m){MAP.cx=lng2x(parseFloat(m[2]));MAP.cy=lat2y(parseFloat(m[1]));MAP.z=Math.max(MAP.z,17);mDraw();return;}
+  try{
+    const r=await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q='+encodeURIComponent(q)),j=await r.json();
+    if(!j.length)return toast('見つかりませんでした。別の住所・地名でお試しください');
+    const[lng,lat]=j[0].geometry.coordinates;MAP.cx=lng2x(lng);MAP.cy=lat2y(lat);MAP.z=Math.max(MAP.z,17);mDraw();toast(j[0].properties.title||'移動しました');
+  }catch(e){toast('検索できませんでした。通信環境を確認するか「緯度,経度」で入力してください');}
+}
+const mLoadTile=(z,x,y,layer)=>new Promise(res=>{
+  const t=MAP.tiles.get(layer+'/'+z+'/'+x+'/'+y);if(t&&t.ok)return res(t.im);
+  const im=new Image();im.crossOrigin='anonymous';im.onload=()=>res(im);im.onerror=()=>res(null);im.src=TILE[layer](z,x,y);
+});
+async function mImport(){
+  const R=MAP.rect;
+  if(!R||(R.x1-R.x0)*256*2**MAP.z<8||(R.y1-R.y0)*256*2**MAP.z<8)return toast('先に「⬚ 範囲指定」で、取り込む範囲をドラッグしてください');
+  let z=18;while(z>5&&((R.x1-R.x0)*256*2**z>4000||(R.y1-R.y0)*256*2**z>4000))z--;
+  const n=2**z,W=Math.max(1,Math.round((R.x1-R.x0)*256*n)),H=Math.max(1,Math.round((R.y1-R.y0)*256*n));
+  const tx0=Math.floor(R.x0*n),tx1=Math.floor(R.x1*n),ty0=Math.max(0,Math.floor(R.y0*n)),ty1=Math.min(n-1,Math.floor(R.y1*n));
+  if((tx1-tx0+1)*(ty1-ty0+1)>400)return toast('範囲が広すぎます。もう少し狭く指定してください');
+  toast('地図を取り込み中…');
+  try{
+    const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);
+    const jobs=[];
+    for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++)jobs.push(mLoadTile(z,((tx%n)+n)%n,ty,MAP.layer).then(im=>{if(im)x.drawImage(im,Math.round((tx-R.x0*n)*256),Math.round((ty-R.y0*n)*256),257,257);return !!im;}));
+    const oks=await Promise.all(jobs);
+    if(!oks.some(Boolean))throw new Error('地図画像を取得できませんでした（通信環境をご確認ください）');
+    let src;try{src=c.toDataURL('image/jpeg',.9);}catch(_){throw new Error('この環境では地図画像を取り込めません。Googleマップ等のスクリーンショットを「🖼 画像」で貼り付けてください');}
+    const lat=y2lat((R.y0+R.y1)/2),res=40075016.686*Math.cos(lat*Math.PI/180)/(256*n),gw=W*res*1000;
+    mClose();dPlaceImage(c,src,gw);
+    toast(`地図を取り込みました（横 約${Math.round(W*res)}m）。実寸の縮尺は変換時に自動設定されます`);
+  }catch(e){toast('取り込めませんでした：'+e.message);}
+}
+$('#mClose').onclick=mClose;$('#mGo').onclick=mSearch;$('#mQ').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)mSearch();});
+$('#mLayer').onchange=e=>{MAP.layer=e.target.value;mDraw();};
+$('#mPan').onclick=()=>mSetMode('pan');$('#mRect').onclick=()=>mSetMode('rect');
+$('#mZi').onclick=()=>mZoom(1);$('#mZo').onclick=()=>mZoom(-1);
+$('#mImport').onclick=mImport;
+$('#mGoogle').onclick=()=>{
+  const lat=y2lat(MAP.cy).toFixed(6),lng=x2lng(MAP.cx).toFixed(6);
+  window.open(`https://www.google.com/maps/@${lat},${lng},${MAP.z}z/data=!3m1!1e3`,'_blank');
+  toast('Googleマップを開きました。必要な範囲のスクリーンショットを撮り、図面作成画面の「🖼 画像」または貼り付け（Ctrl+V）で取り込めます');
+};
+new ResizeObserver(()=>{if(MAP.open)mResize();}).observe(mwrap);
 
 /* --- 開く・閉じる --- */
 async function dOpen(){
@@ -1883,19 +2334,47 @@ async function dOpen(){
   await flushSave();
   DRW.siteId=S.siteId;
   let d=null;try{d=await DB.get('dr:'+S.siteId);}catch(_){}
-  DRW.items=(d&&Array.isArray(d.items))?d.items:[];
-  DRW.paper=(d&&PAPERS[d.paper])?d.paper:'a3l';
-  DRW.undo=[];DRW.redo=[];DRW.cur=null;DRW.ptrs.clear();DRW.gest=null;DRW.open=true;
-  $('#drw').hidden=false;dSync();dResize();dFit();
+  DRW.imgs={};
+  if(d&&Array.isArray(d.pages)&&d.pages.length)DRW.pages=d.pages.map(pg=>({paper:PAPERS[pg.paper]?pg.paper:'a3l',items:Array.isArray(pg.items)?pg.items:[]}));
+  else if(d&&Array.isArray(d.items))DRW.pages=[{paper:PAPERS[d.paper]?d.paper:'a3l',items:d.items}];
+  else DRW.pages=[{paper:'a3l',items:[]}];
+  if(d&&d.imgs)for(const[id,src]of Object.entries(d.imgs)){const im=new Image();im.onload=()=>{if(DRW.open)dDraw();};im.src=src;DRW.imgs[id]={src,el:im};}
+  DRW.open=true;DRW.cur=null;DRW.ptrs.clear();DRW.gest=null;
+  $('#drw').hidden=false;$('#dAppend').style.display=S.bg?'':'none';
+  dResize();dLoadPage(Math.min((d&&d.pi)||0,DRW.pages.length-1));
 }
 function dClose(){
-  dFlush();DRW.open=false;DRW.cur=null;$('#drw').hidden=true;
+  dFlush();DRW.open=false;DRW.cur=null;$('#drw').hidden=true;mClose();
   resize();
 }
 $('#bDraw').onclick=dOpen;
 $('#dClose').onclick=dClose;
-$('#dConv').onclick=dConvert;
-document.querySelectorAll('#dTools [data-t]').forEach(b=>b.onclick=()=>{DRW.tool=b.dataset.t;dSync();});
+$('#dConv').onclick=()=>dConvert(false);
+$('#dAppend').onclick=()=>dConvert(true);
+$('#dPrev').onclick=()=>dSwitch(DRW.pi-1);$('#dNext').onclick=()=>dSwitch(DRW.pi+1);
+$('#dPAdd').onclick=dPageAdd;$('#dPDel').onclick=dPageDel;
+$('#dImg').onclick=()=>$('#dFile').click();
+$('#dFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)dAddImageFile(f);};
+$('#dMap').onclick=mOpen;
+async function dPasteClip(){
+  try{
+    if(!navigator.clipboard||!navigator.clipboard.read)throw 0;
+    const its=await navigator.clipboard.read();
+    for(const it of its){const t=it.types.find(x=>x.startsWith('image/'));if(t){const b=await it.getType(t);await dAddImageFile(new File([b],'clip.png',{type:t}));return;}}
+    toast('クリップボードに画像がありません。スクリーンショットを撮って「コピー」してから押してください');
+  }catch(e){toast('貼り付けできません。画面を長押し→「ペースト」、またはスクリーンショットを写真に保存して「🖼 画像」から選んでください');}
+}
+$('#dPaste').onclick=dPasteClip;
+$('#dGmap').onclick=()=>{const lat=y2lat(MAP.cy).toFixed(6),lng=x2lng(MAP.cx).toFixed(6);window.open(`https://www.google.com/maps/@${lat},${lng},18z/data=!3m1!1e3`,'_blank');toast('Googleマップで範囲を表示→スクリーンショット→「コピー」→この画面で「📋 貼付」で貼り付けます');};
+$('#dIz').onclick=()=>dImgScale(1.1);$('#dIm').onclick=()=>dImgScale(1/1.1);
+document.addEventListener('paste',e=>{
+  if(!DRW.open||MAP.open)return;
+  const its=(e.clipboardData&&e.clipboardData.items)||[];
+  for(const it of its)if(it.type&&it.type.startsWith('image/')){const f=it.getAsFile();if(f){e.preventDefault();dAddImageFile(f);return;}}
+});
+dwrap.addEventListener('dragover',e=>e.preventDefault());
+dwrap.addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(f&&f.type.startsWith('image/')){e.preventDefault();dAddImageFile(f);}});
+document.querySelectorAll('#dTools [data-t]').forEach(b=>b.onclick=()=>{DRW.tool=b.dataset.t;if(DRW.tool!=='sel')DRW.sel=[];dSync();dDraw();});
 $('#dCols').onclick=e=>{const b=e.target.closest('.sw');if(!b)return;DRW.color=b.dataset.c;dSync();};
 $('#dW').onchange=e=>{DRW.w=parseFloat(e.target.value)||0.5;};
 $('#dSize').onchange=e=>{DRW.size=parseFloat(e.target.value)||8;};
@@ -1903,16 +2382,17 @@ $('#dDash').onclick=()=>{DRW.dash=!DRW.dash;dSync();};
 $('#dAuto').onclick=()=>{DRW.auto=!DRW.auto;dSync();toast(DRW.auto?'自動直線：ON（手書きの線を直線・水平垂直に整えます）':'自動直線：OFF（そのまま手書きします）');};
 $('#dGrid').onclick=()=>{DRW.grid=!DRW.grid;dSync();dDraw();};
 $('#dFinger').onclick=()=>{S.finger=!S.finger;dSync();scheduleSave();toast(S.finger?'指でも描けます（2本指で拡大・移動）':'指は拡大・移動のみ（ペン・マウスで描きます）');};
-$('#dPaper').onchange=e=>{if(PAPERS[e.target.value]){DRW.paper=e.target.value;dFit();dSave();}};
+$('#dPaper').onchange=e=>{if(PAPERS[e.target.value]){DRW.paper=e.target.value;dStorePage();dFit();dSave();}};
 $('#dUndo').onclick=dUndo;$('#dRedo').onclick=dRedo;$('#dFit').onclick=dFit;
 $('#dDelSel').onclick=dDelSel;
 $('#dClear').onclick=()=>{
   if(!DRW.items.length)return;
-  if(!confirm('手書きした内容をすべて消去します。\nよろしいですか？（「↶」で元に戻せます）'))return;
+  if(!confirm('このページの手書き内容をすべて消去します。\nよろしいですか？（「↶」で元に戻せます）'))return;
   dSnap();DRW.items=[];dChanged();
 };
 document.addEventListener('keydown',e=>{
   if(!DRW.open||$('#modal').classList.contains('show'))return;
+  if(MAP.open){if(e.key==='Escape')mClose();return;}
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?dRedo():dUndo();}
   else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'){e.preventDefault();DRW.tool='sel';DRW.sel=[...DRW.items];dSync();dDraw();}
   else if((e.key==='Delete'||e.key==='Backspace')&&DRW.sel.length){e.preventDefault();dDelSel();}
