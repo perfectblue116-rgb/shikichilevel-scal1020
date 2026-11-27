@@ -109,22 +109,55 @@ details.set select,details.set input[type=range]{flex:1}
 #mInfo{position:absolute;left:10px;bottom:12px;max-width:calc(100% - 20px);background:rgba(21,101,192,.93);color:#fff;padding:8px 12px;border-radius:8px;font-size:12.5px;line-height:1.6;pointer-events:none}
 #noteOpts{display:none}
 #dHint{position:absolute;left:10px;bottom:12px;max-width:calc(100% - 20px);background:rgba(21,101,192,.93);color:#fff;padding:8px 12px;border-radius:8px;font-size:12.5px;line-height:1.6;pointer-events:none}
+
+/* ---- タブ式ツールバー ---- */
+button{font-weight:700}
+.tb{display:block!important;padding:0!important;flex-wrap:nowrap!important;background:#fff;border-bottom:2px solid var(--pri)}
+.tbTop{display:flex;align-items:center;gap:6px;padding:6px 8px 0;white-space:nowrap;overflow-x:auto;scrollbar-width:none}
+.tbTop::-webkit-scrollbar,.tbRow::-webkit-scrollbar{display:none}
+.tbSp{flex:1}
+.tabs{display:flex;gap:2px;align-self:flex-end;margin-left:4px}
+.tab{border:1px solid var(--line);border-bottom:none;border-radius:9px 9px 0 0;background:#eef1f5;color:#455463;padding:9px 16px;font-size:14.5px;font-weight:800;margin-bottom:0}
+.tab.cur{background:var(--pri);color:#fff;border-color:var(--pri)}
+.tbTop>button:not(.tab),.tbTop .grp button{margin-bottom:6px}
+.tbTop .grp{margin-bottom:6px;font-weight:700}
+.tbTop .grp button{margin-bottom:0}
+.tbRow{display:none;align-items:center;gap:6px;padding:7px 8px;background:#e8f0fb;white-space:nowrap;overflow-x:auto;min-height:52px;scrollbar-width:none}
+.tbRow.cur{display:flex}
+.tbRow .grp:first-child{border-left:none;padding-left:0}
+.tb select{font:inherit;font-weight:700;padding:7px 8px;border:1px solid #b9c0c8;border-radius:7px;background:#fff;color:#1c2127}
+#pgl,#dPg{min-width:42px;text-align:center;font-weight:800}
+#mBar button,#mBar select{font-weight:700}
+@media(max-width:1060px){
+ .tbTop{flex-wrap:wrap;row-gap:0}
+ .tabs{order:9;flex:1 0 100%;margin:4px 0 0}
+ .tab{flex:1;padding:9px 6px}
+ .tbRow{flex-wrap:wrap;row-gap:6px}
+}
 </style>
 </head>
 <body>
-<div id="bar">
-  <button id="bSite" class="pri">🏗 <span id="siteName">—</span></button>
-  <button id="bOpen">📂 図面を開く</button>
-  <button id="bAdd" title="PDF・画像を新しいページ（別の階など）として追加します">➕ ページ追加</button>
-  <button id="bDraw" title="図面がない現場：手書きで作図してPDFに変換します">✏️ 手書き図面</button>
-  <span class="grp"><button id="bPrev">◀</button><span id="pgl">-</span><button id="bNext">▶</button></span>
-  <span class="grp" id="modes">
+<div id="bar" class="tb">
+  <div class="tbTop">
+    <button id="bSite" class="pri">🏗 <span id="siteName">—</span></button>
+    <div class="tabs" data-bar="main">
+      <button class="tab" data-tab="meas">📍 測定</button>
+      <button class="tab" data-tab="aux">📏 作図補助</button>
+      <button class="tab" data-tab="doc">📂 図面</button>
+      <button class="tab" data-tab="out">💾 保存・出力</button>
+    </div>
+    <span class="tbSp"></span>
+    <span class="grp"><button id="bPrev">◀</button><span id="pgl">-</span><button id="bNext">▶</button></span>
+    <span class="grp"><button id="bUndo">↶</button><button id="bRedo">↷</button><button id="bFit">全体</button></span>
+    <button id="bPanel">📋 測点表</button>
+  </div>
+  <div class="tbRow" data-pane="meas"><span class="grp" id="modes">
     <button data-mode="write" class="on">📍 測点</button>
     <button data-mode="note" title="手書きで注釈を書き込みます。長押しで測点は入りません（測点を打つときは「📍 測点」に戻します）">✍ 注釈</button>
     <button data-mode="erase">🧽 消す</button>
     <button data-mode="hand">🖐 移動</button>
-  </span>
-  <span class="grp" id="modes2">
+  </span><span class="grp" id="noteOpts"><span id="noteCols" style="display:inline-flex;gap:3px"></span><select id="noteW" title="注釈の太さ"><option value="2.5">細</option><option value="4">中</option><option value="7">太</option><option value="12">極太</option></select></span><span class="grp" id="floorGrp"><button id="bFloor" class="pri" title="フロア別の測定一覧">🏢 <span id="floorName">—</span></button><button id="bStartF" class="acc" title="このページ（別の階）の測定を新しく始めます">▶ 測定開始</button><button id="bDoneF" title="この階の測定を完了します">✔ 測定完了</button></span><span class="grp"><button id="bNew" class="acc">🔄 レベル据え直し</button><button id="bDatum">📐 基準高さ</button></span><span class="grp" id="bases"><button data-base="p1">基準点1</button><button data-base="kbm">KBM</button><button data-base="gl">GL</button><button data-base="fl">FL</button></span></div>
+  <div class="tbRow" data-pane="aux"><span class="grp" id="modes2">
     <button data-mode="scale" title="図面上の2点を押して実寸を入力すると縮尺が決まります">📏 縮尺</button>
     <button data-mode="ext" title="建物の壁などの延長線（仮点線）">┄ 延長線</button>
     <button data-mode="line" title="2点間の仮点線">┄ 仮線</button>
@@ -133,26 +166,30 @@ details.set select,details.set input[type=range]{flex:1}
     <button data-mode="sel" title="仮線・延長線・距離を選択して移動／削除">👆 選択</button>
     <button id="bSnap" class="on" title="仮線の端点・交点・線上に吸着">🧲 吸着</button>
     <button id="bOrtho" class="on" title="タッチ・ペン操作で、ほぼ水平／垂直になる場合に自動でまっすぐにします（パソコンはShiftを押しながらで水平／垂直に固定）">⊥ 水平垂直</button>
-  </span>
-  <span class="grp"><button id="bUndo">↶</button><button id="bRedo">↷</button><button id="bFit">全体</button></span>
-  <button id="bDatum">📐 基準高さ</button>
-  <span class="grp" id="bases"><button data-base="p1">基準点1</button><button data-base="kbm">KBM</button><button data-base="gl">GL</button><button data-base="fl">FL</button></span>
-  <button id="bNew" class="acc">🔄 レベル据え直し</button>
-  <span class="grp" id="floorGrp"><button id="bFloor" class="pri" title="フロア別の測定一覧">🏢 <span id="floorName">—</span></button><button id="bStartF" class="acc" title="このページ（別の階）の測定を新しく始めます">▶ 測定開始</button><button id="bDoneF" title="この階の測定を完了します">✔ 測定完了</button></span>
-  <span class="grp" id="noteOpts"><span id="noteCols" style="display:inline-flex;gap:3px"></span><select id="noteW" title="注釈の太さ"><option value="2.5">細</option><option value="4">中</option><option value="7">太</option><option value="12">極太</option></select></span>
-  <span class="grp"><button id="bSave">💾 保存</button><button id="bLoad">📥 読込</button><button id="bCsv">CSV</button><button id="bPng">PNG</button><button id="bPdf" class="pri">PDF(A3)</button></span>
-  <button id="bPanel">📋 測点表</button>
-  <button id="bClean" title="キャッシュ整理">🧹</button>
+  </span></div>
+  <div class="tbRow" data-pane="doc"><span class="grp"><button id="bOpen">📂 図面を開く</button><button id="bAdd" title="PDF・画像を新しいページ（別の階など）として追加します">➕ ページ追加</button><button id="bDraw" title="図面がない現場：手書きで作図してPDFに変換します">✏️ 手書き図面</button></span><span class="grp"><button id="bClean" title="キャッシュ整理">🧹 キャッシュ整理</button></span></div>
+  <div class="tbRow" data-pane="out"><span class="grp"><button id="bSave">💾 保存</button><button id="bLoad">📥 読込</button></span><span class="grp"><button id="bCsv">CSV</button><button id="bPng">PNG</button><button id="bPdf" class="pri">PDF(A3)</button></span></div>
 </div>
 <div id="main">
   <div id="wrap"><canvas id="cv"></canvas><div id="hud"></div><button id="pTab" type="button">📋 測点表を表示</button></div>
   <aside id="panel"><div id="phead"><b>📋 測点表</b><button id="pClose" type="button">✕ 閉じる</button></div><div id="pbody"></div></aside>
 </div>
 <div id="drw" hidden>
-  <div id="dBar">
+  <div id="dBar" class="tb">
+  <div class="tbTop">
     <button id="dClose">✕ 閉じる</button>
-    <span class="grp"><select id="dPaper" title="用紙"><option value="a3l">A3 横</option><option value="a3p">A3 縦</option><option value="a4l">A4 横</option><option value="a4p">A4 縦</option></select></span>
-    <span class="grp" id="dTools">
+    <div class="tabs" data-bar="drw">
+      <button class="tab" data-tab="draw">✏️ 描く</button>
+      <button class="tab" data-tab="style">🎨 線・色</button>
+      <button class="tab" data-tab="page">📄 ページ・画像</button>
+    </div>
+    <span class="tbSp"></span>
+    <span class="grp"><button id="dPrev">◀</button><span id="dPg">1/1</span><button id="dNext">▶</button></span>
+    <span class="grp"><button id="dUndo">↶</button><button id="dRedo">↷</button><button id="dFit">全体</button></span>
+    <button id="dAppend" style="display:none" title="今開いている図面の後ろに、この手書きページを追加します">➕ 現在の図面に追加</button>
+    <button id="dConv" class="acc">📄 PDFに変換して測定へ</button>
+  </div>
+  <div class="tbRow" data-pane="draw"><span class="grp" id="dTools">
       <button data-t="pen" class="on">✏️ ペン</button>
       <button data-t="line">╱ 直線</button>
       <button data-t="rect">▭ 四角</button>
@@ -160,22 +197,10 @@ details.set select,details.set input[type=range]{flex:1}
       <button data-t="erase">🧽 消す</button>
       <button data-t="sel">⬚ 範囲選択</button>
       <button data-t="hand">🖐 移動</button>
-    </span>
-    <span class="grp" id="dCols"></span>
-    <span class="grp">
-      <select id="dW" title="線の太さ"><option value="0.25">線 0.25mm</option><option value="0.35">線 0.35mm</option><option value="0.5">線 0.5mm</option><option value="0.7">線 0.7mm</option><option value="1">線 1mm</option><option value="1.5">線 1.5mm</option><option value="2.5">線 2.5mm</option></select>
-      <button id="dDash" title="破線（境界線など）">┄ 破線</button>
-      <button id="dAuto" class="on" title="ペンで描いた線を自動で直線・水平垂直に整えます（曲線や文字を手書きしたいときはOFF）">📐 自動直線</button>
-      <select id="dSize" title="文字の大きさ"><option value="5">文字 小</option><option value="8">文字 中</option><option value="12">文字 大</option><option value="18">文字 特大</option></select>
-    </span>
-    <span class="grp"><button id="dPrev">◀</button><span id="dPg">1/1</span><button id="dNext">▶</button><button id="dPAdd">＋ ページ</button><button id="dPDel" class="danger" title="このページを削除">✕</button></span>
-    <span class="grp"><button id="dImg" title="写真・Googleマップのスクリーンショット等を貼り付け（Ctrl+Vでも貼り付け可）">🖼 画像</button><button id="dPaste" title="Googleマップ等でコピーした画像（スクリーンショット）を貼り付けます">📋 貼付</button><button id="dMap" title="地図から範囲を指定して取り込みます">🗺 地図取込</button><button id="dGmap" title="Googleマップを開きます（範囲のスクリーンショットを撮って「📋 貼付」）">G Googleマップ</button><span id="dImgG" style="display:none;gap:3px"><button id="dIz">画像＋</button><button id="dIm">画像－</button></span></span>
-    <span class="grp"><button id="dUndo">↶</button><button id="dRedo">↷</button><button id="dFit">全体</button><button id="dGrid" class="on">方眼</button><button id="dFinger" title="ONにすると指でも描けます（Apple Pencilなどペン使用時はOFF推奨）">☝ 指で描く</button></span>
-    <button id="dDelSel" class="danger" style="display:none">🗑 選択を削除</button>
-    <button id="dClear" class="danger">🗑 全消去</button>
-    <button id="dAppend" style="display:none" title="今開いている図面の後ろに、この手書きページを追加します">➕ 現在の図面に追加</button>
-    <button id="dConv" class="acc">📄 PDFに変換して測定へ</button>
-  </div>
+    </span><span class="grp"><button id="dAuto" class="on" title="ペンで描いた線を自動で直線・水平垂直に整えます（曲線や文字を手書きしたいときはOFF）">📐 自動直線</button><button id="dFinger" title="ONにすると指でも描けます（Apple Pencilなどペン使用時はOFF推奨）">☝ 指で描く</button></span><button id="dDelSel" class="danger" style="display:none">🗑 選択を削除</button><button id="dClear" class="danger">🗑 全消去</button></div>
+  <div class="tbRow" data-pane="style"><span class="grp" id="dCols"></span><span class="grp"><select id="dW" title="線の太さ"><option value="0.25">線 0.25mm</option><option value="0.35">線 0.35mm</option><option value="0.5">線 0.5mm</option><option value="0.7">線 0.7mm</option><option value="1">線 1mm</option><option value="1.5">線 1.5mm</option><option value="2.5">線 2.5mm</option></select><button id="dDash" title="破線（境界線など）">┄ 破線</button><select id="dSize" title="文字の大きさ"><option value="5">文字 小</option><option value="8">文字 中</option><option value="12">文字 大</option><option value="18">文字 特大</option></select></span><span class="grp"><button id="dGrid" class="on">方眼</button></span></div>
+  <div class="tbRow" data-pane="page"><span class="grp"><select id="dPaper" title="用紙"><option value="a3l">A3 横</option><option value="a3p">A3 縦</option><option value="a4l">A4 横</option><option value="a4p">A4 縦</option></select><button id="dPAdd">＋ ページ</button><button id="dPDel" class="danger" title="このページを削除">✕ ページ削除</button></span><span class="grp"><button id="dImg" title="写真・Googleマップのスクリーンショット等を貼り付け（Ctrl+Vでも貼り付け可）">🖼 画像</button><button id="dPaste" title="Googleマップ等でコピーした画像（スクリーンショット）を貼り付けます">📋 貼付</button><button id="dMap" title="地図から範囲を指定して取り込みます">🗺 地図取込</button><button id="dGmap" title="Googleマップを開きます（範囲のスクリーンショットを撮って「📋 貼付」）">G Googleマップ</button><span id="dImgG" style="display:none;gap:3px"><button id="dIz">画像＋</button><button id="dIm">画像－</button></span></span></div>
+</div>
   <input type="file" id="dFile" accept="image/*" hidden>
   <div id="dWrap"><canvas id="dCv"></canvas><div id="dHint">ペン（マウス）で敷地のアウトラインや建物・道路を手書きします。<br>指で描く場合は「☝ 指で描く」をON。2本指で拡大・移動できます。<br>「＋ ページ」で階ごとにページを増やせます。「🖼 画像」「🗺 地図取込」で敷地の写真・地図を下絵に貼れます（Googleマップは「G Googleマップ」→スクショをコピー→「📋 貼付」）。<br>描き終えたら「📄 PDFに変換して測定へ」を押すと、PDF図面と同じようにレベル測定できます。</div></div>
 </div>
@@ -2420,6 +2445,20 @@ new ResizeObserver(()=>{if(DRW.open)dResize();}).observe(dwrap);
   }catch(err){console.warn(err);toast('保存領域を利用できません（この環境では自動保存されません）');resize();refresh();}
 })();
 })();
+
+/* ---- タブ切替（選んだタブは端末に記憶） ---- */
+function tbSet(bar,t){
+  const root=document.querySelector(`.tabs[data-bar="${bar}"]`).closest('.tb');
+  root.querySelectorAll('.tab').forEach(b=>b.classList.toggle('cur',b.dataset.tab===t));
+  root.querySelectorAll('.tbRow').forEach(r=>r.classList.toggle('cur',r.dataset.pane===t));
+  try{localStorage.setItem('tb_'+bar,t);}catch(_){}
+}
+document.querySelectorAll('.tabs').forEach(tg=>{
+  const bar=tg.dataset.bar;let t=null;try{t=localStorage.getItem('tb_'+bar);}catch(_){}
+  if(!tg.querySelector(`[data-tab="${t}"]`))t=tg.querySelector('.tab').dataset.tab;
+  tg.onclick=e=>{const b=e.target.closest('.tab');if(b)tbSet(bar,b.dataset.tab);};
+  tbSet(bar,t);
+});
 </script>
 </body>
 </html>
