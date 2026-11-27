@@ -105,6 +105,7 @@ details.set select,details.set input[type=range]{flex:1}
 #mBar select,#mBar input{font:inherit;padding:6px 8px;border:1px solid #b9c0c8;border-radius:7px;background:#fff;color:#1c2127}
 #mBar input{min-width:200px}
 #mWrap{flex:1;position:relative;min-height:0;background:#cfd5dc;overflow:hidden}
+#gMap{position:absolute;inset:0;display:none}
 #mCv{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none;display:block}
 #mInfo{position:absolute;left:10px;bottom:12px;max-width:calc(100% - 20px);background:rgba(21,101,192,.93);color:#fff;padding:8px 12px;border-radius:8px;font-size:12.5px;line-height:1.6;pointer-events:none}
 #noteOpts{display:none}
@@ -199,23 +200,24 @@ button{font-weight:700}
       <button data-t="hand">🖐 移動</button>
     </span><span class="grp"><button id="dAuto" class="on" title="ペンで描いた線を自動で直線・水平垂直に整えます（曲線や文字を手書きしたいときはOFF）">📐 自動直線</button><button id="dFinger" title="ONにすると指でも描けます（Apple Pencilなどペン使用時はOFF推奨）">☝ 指で描く</button></span><button id="dDelSel" class="danger" style="display:none">🗑 選択を削除</button><button id="dClear" class="danger">🗑 全消去</button></div>
   <div class="tbRow" data-pane="style"><span class="grp" id="dCols"></span><span class="grp"><select id="dW" title="線の太さ"><option value="0.25">線 0.25mm</option><option value="0.35">線 0.35mm</option><option value="0.5">線 0.5mm</option><option value="0.7">線 0.7mm</option><option value="1">線 1mm</option><option value="1.5">線 1.5mm</option><option value="2.5">線 2.5mm</option></select><button id="dDash" title="破線（境界線など）">┄ 破線</button><select id="dSize" title="文字の大きさ"><option value="5">文字 小</option><option value="8">文字 中</option><option value="12">文字 大</option><option value="18">文字 特大</option></select></span><span class="grp"><button id="dGrid" class="on">方眼</button></span></div>
-  <div class="tbRow" data-pane="page"><span class="grp"><select id="dPaper" title="用紙"><option value="a3l">A3 横</option><option value="a3p">A3 縦</option><option value="a4l">A4 横</option><option value="a4p">A4 縦</option></select><button id="dPAdd">＋ ページ</button><button id="dPDel" class="danger" title="このページを削除">✕ ページ削除</button></span><span class="grp"><button id="dImg" title="写真・Googleマップのスクリーンショット等を貼り付け（Ctrl+Vでも貼り付け可）">🖼 画像</button><button id="dPaste" title="Googleマップ等でコピーした画像（スクリーンショット）を貼り付けます">📋 貼付</button><button id="dMap" title="地図から範囲を指定して取り込みます">🗺 地図取込</button><button id="dGmap" title="Googleマップを開きます（範囲のスクリーンショットを撮って「📋 貼付」）">G Googleマップ</button><span id="dImgG" style="display:none;gap:3px"><button id="dIz">画像＋</button><button id="dIm">画像－</button></span></span></div>
+  <div class="tbRow" data-pane="page"><span class="grp"><select id="dPaper" title="用紙"><option value="a3l">A3 横</option><option value="a3p">A3 縦</option><option value="a4l">A4 横</option><option value="a4p">A4 縦</option></select><button id="dPAdd">＋ ページ</button><button id="dPDel" class="danger" title="このページを削除">✕ ページ削除</button></span><span class="grp"><button id="dImg" title="写真・Googleマップのスクリーンショット等を貼り付け（Ctrl+Vでも貼り付け可）">🖼 画像</button><button id="dPaste" title="Googleマップ等でコピーした画像（スクリーンショット）を貼り付けます">📋 貼付</button><button id="dMap" class="pri" title="Googleマップで現在地を表示し、範囲を指定して自動で貼り付けます">🗺 Googleマップ取込</button><span id="dImgG" style="display:none;gap:3px"><button id="dIz">画像＋</button><button id="dIm">画像－</button></span></span></div>
 </div>
   <input type="file" id="dFile" accept="image/*" hidden>
-  <div id="dWrap"><canvas id="dCv"></canvas><div id="dHint">ペン（マウス）で敷地のアウトラインや建物・道路を手書きします。<br>指で描く場合は「☝ 指で描く」をON。2本指で拡大・移動できます。<br>「＋ ページ」で階ごとにページを増やせます。「🖼 画像」「🗺 地図取込」で敷地の写真・地図を下絵に貼れます（Googleマップは「G Googleマップ」→スクショをコピー→「📋 貼付」）。<br>描き終えたら「📄 PDFに変換して測定へ」を押すと、PDF図面と同じようにレベル測定できます。</div></div>
+  <div id="dWrap"><canvas id="dCv"></canvas><div id="dHint">ペン（マウス）で敷地のアウトラインや建物・道路を手書きします。<br>指で描く場合は「☝ 指で描く」をON。2本指で拡大・移動できます。<br>「＋ ページ」で階ごとにページを増やせます。「🖼 画像」で写真、「🗺 Googleマップ取込」で現在地周辺の地図を範囲指定して下絵に貼れます。<br>描き終えたら「📄 PDFに変換して測定へ」を押すと、PDF図面と同じようにレベル測定できます。</div></div>
 </div>
 <div id="mapw" hidden>
   <div id="mBar">
     <button id="mClose">✕ 閉じる</button>
     <input id="mQ" type="search" placeholder="住所・地名（例：宇都宮市〇〇町）または 緯度,経度">
     <button id="mGo">検索</button>
-    <select id="mLayer"><option value="photo">航空写真</option><option value="std">地図</option><option value="pale">淡色地図</option></select>
+    <button id="mHere" class="pri" title="端末の現在地へ移動します">📍 現在地</button>
+    <select id="mLayer"><optgroup label="Googleマップ"><option value="g_sat">Google 航空写真</option><option value="g_hyb">Google 航空写真＋地名</option><option value="g_road">Google 地図</option></optgroup><optgroup label="国土地理院（APIキー不要）"><option value="photo">地理院 航空写真</option><option value="std">地理院 地図</option><option value="pale">地理院 淡色地図</option></optgroup></select>
     <span class="grp"><button id="mPan" class="on">🖐 移動</button><button id="mRect">⬚ 範囲指定</button></span>
     <span class="grp"><button id="mZo">－</button><span id="mZ">17</span><button id="mZi">＋</button></span>
-    <button id="mGoogle" title="Googleマップを新しいタブで開きます">🗺 Googleマップを開く</button>
+    <button id="mKey" title="Google Maps APIキーの設定">🔑 APIキー</button>
     <button id="mImport" class="acc">⬇ この範囲を取り込む</button>
   </div>
-  <div id="mWrap"><canvas id="mCv"></canvas><div id="mInfo"></div></div>
+  <div id="mWrap"><div id="gMap"></div><canvas id="mCv"></canvas><div id="mInfo"></div></div>
 </div>
 <div id="modal"></div>
 <div id="toast"></div>
@@ -2254,7 +2256,8 @@ function mDraw(){
   const ctx=mcv.getContext('2d'),dpr=devicePixelRatio||1,{W,H}=mSz(),z=MAP.z,n=2**z,N=256*n;
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#cfd5dc';ctx.fillRect(0,0,W,H);
   const x0=Math.floor((MAP.cx-W/2/N)*n),x1=Math.floor((MAP.cx+W/2/N)*n),y0=Math.max(0,Math.floor((MAP.cy-H/2/N)*n)),y1=Math.min(n-1,Math.floor((MAP.cy+H/2/N)*n));
-  for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
+  const isG=MAP.layer.startsWith('g_');if(isG)ctx.clearRect(0,0,W,H);
+  if(!isG)for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
     const t=mTile(z,((tx%n)+n)%n,ty,MAP.layer);
     if(t.ok)ctx.drawImage(t.im,tx*256-MAP.cx*N+W/2,ty*256-MAP.cy*N+H/2,256.6,256.6);
   }
@@ -2263,8 +2266,13 @@ function mDraw(){
     const px=(R.x0-MAP.cx)*N+W/2,py=(R.y0-MAP.cy)*N+H/2,pw=(R.x1-R.x0)*N,ph=(R.y1-R.y0)*N;
     ctx.fillStyle='rgba(239,108,0,.15)';ctx.fillRect(px,py,pw,ph);ctx.strokeStyle='#ef6c00';ctx.lineWidth=2.5;ctx.setLineDash([8,5]);ctx.strokeRect(px,py,pw,ph);ctx.setLineDash([]);
   }
-  ctx.font='11px sans-serif';ctx.textAlign='right';ctx.fillStyle='rgba(0,0,0,.55)';const tx='出典：国土地理院タイル',tw=ctx.measureText(tx).width;
-  ctx.fillRect(W-tw-14,H-20,tw+10,16);ctx.fillStyle='#fff';ctx.fillText(tx,W-9,H-8);
+  if(MAP.here){ // 現在地マーカー
+    const hx=(lng2x(MAP.here.lng)-MAP.cx)*N+W/2,hy=(lat2y(MAP.here.lat)-MAP.cy)*N+H/2,ar=MAP.here.acc/(40075016.686*Math.cos(MAP.here.lat*Math.PI/180))*N;
+    if(ar>8&&ar<Math.max(W,H)){ctx.fillStyle='rgba(26,115,232,.15)';ctx.beginPath();ctx.arc(hx,hy,ar,0,7);ctx.fill();}
+    ctx.fillStyle='#1a73e8';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(hx,hy,8,0,7);ctx.fill();ctx.stroke();
+  }
+  if(!isG){ctx.font='11px sans-serif';ctx.textAlign='right';ctx.fillStyle='rgba(0,0,0,.55)';const tx='出典：国土地理院タイル',tw=ctx.measureText(tx).width;
+  ctx.fillRect(W-tw-14,H-20,tw+10,16);ctx.fillStyle='#fff';ctx.fillText(tx,W-9,H-8);}
   $('#mZ').textContent=String(z);mInfo();
 }
 function mRectM(){
@@ -2274,12 +2282,12 @@ function mRectM(){
 }
 function mInfo(){
   const r=mRectM(),e=$('#mInfo');
-  e.textContent=r&&r.w>1?`選択範囲：約 ${Math.round(r.w)}m × ${Math.round(r.h)}m　→「⬇ この範囲を取り込む」`:'① 住所検索 ② 「⬚ 範囲指定」で取り込みたい範囲をドラッグ ③ 「⬇ この範囲を取り込む」（取り込んだ地図は実寸の縮尺が自動設定されます）';
+  e.textContent=r&&r.w>1?`選択範囲：約 ${Math.round(r.w)}m × ${Math.round(r.h)}m　→「⬇ この範囲を取り込む」`:'① 「📍 現在地」または住所検索で移動 ② 「⬚ 範囲指定」で取り込みたい範囲をドラッグ ③ 「⬇ この範囲を取り込む」で作図画面に自動で貼り付け（実寸の縮尺も自動設定）';
 }
 function mZoom(dz,px,py){
-  const nz=Math.max(5,Math.min(18,MAP.z+dz));if(nz===MAP.z)return;
+  const nz=Math.max(5,Math.min(gIs()?21:18,MAP.z+dz));if(nz===MAP.z)return;
   const{W,H}=mSz();if(px===undefined){px=W/2;py=H/2;}
-  const w0=mWorld({x:px,y:py});MAP.z=nz;const N=256*2**nz;MAP.cx=w0.x-(px-W/2)/N;MAP.cy=w0.y-(py-H/2)/N;mDraw();
+  const w0=mWorld({x:px,y:py});MAP.z=nz;const N=256*2**nz;MAP.cx=w0.x-(px-W/2)/N;MAP.cy=w0.y-(py-H/2)/N;gPush();mDraw();
 }
 mcv.addEventListener('pointerdown',e=>{
   e.preventDefault();try{mcv.setPointerCapture(e.pointerId);}catch(_){}
@@ -2304,17 +2312,26 @@ const mUp=e=>{MAP.ptrs.delete(e.pointerId);MAP.drag=null;if(MAP.ptrs.size===1){c
 mcv.addEventListener('pointerup',mUp);mcv.addEventListener('pointercancel',mUp);
 mcv.addEventListener('wheel',e=>{e.preventDefault();const t=Date.now();if(t-MAP.wt<180)return;MAP.wt=t;const p=mPos(e);mZoom(e.deltaY<0?1:-1,p.x,p.y);},{passive:false});
 mcv.addEventListener('contextmenu',e=>e.preventDefault());
-function mSetMode(m){MAP.mode=m;$('#mPan').classList.toggle('on',m==='pan');$('#mRect').classList.toggle('on',m==='rect');mcv.style.cursor=m==='rect'?'crosshair':'grab';}
-function mOpen(){MAP.open=true;$('#mapw').hidden=false;mSetMode('pan');mResize();}
+function mSetMode(m){MAP.mode=m;mcv.style.pointerEvents=gIs()&&m==='pan'?'none':'auto';$('#mPan').classList.toggle('on',m==='pan');$('#mRect').classList.toggle('on',m==='rect');mcv.style.cursor=m==='rect'?'crosshair':'grab';}
+async function mOpen(){
+  MAP.open=true;$('#mapw').hidden=false;
+  if(!MAP.inited){MAP.inited=true;let l=null;try{l=localStorage.getItem('mapLayer');}catch(_){}MAP.layer=l||'g_sat';$('#mLayer').value=MAP.layer;}
+  await mSetLayer(MAP.layer);mSetMode('pan');mResize();
+  if(!MAP.here)mHere(true);
+}
 function mClose(){MAP.open=false;$('#mapw').hidden=true;}
 async function mSearch(){
   const q=$('#mQ').value.trim();if(!q)return;
   const m=q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,，\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
-  if(m){MAP.cx=lng2x(parseFloat(m[2]));MAP.cy=lat2y(parseFloat(m[1]));MAP.z=Math.max(MAP.z,17);mDraw();return;}
+  if(m){MAP.cx=lng2x(parseFloat(m[2]));MAP.cy=lat2y(parseFloat(m[1]));MAP.z=Math.max(MAP.z,17);gPush();mDraw();return;}
+  if(gIs()&&GM.map){
+    const r=await new Promise(res=>{try{new google.maps.Geocoder().geocode({address:q,region:'jp'},(rs,st)=>res(st==='OK'&&rs&&rs[0]?rs[0]:null));}catch(_){res(null);}});
+    if(r){const l=r.geometry.location;MAP.cx=lng2x(l.lng());MAP.cy=lat2y(l.lat());MAP.z=Math.max(MAP.z,18);gPush();mDraw();toast(r.formatted_address||'移動しました');return;}
+  }
   try{
     const r=await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q='+encodeURIComponent(q)),j=await r.json();
     if(!j.length)return toast('見つかりませんでした。別の住所・地名でお試しください');
-    const[lng,lat]=j[0].geometry.coordinates;MAP.cx=lng2x(lng);MAP.cy=lat2y(lat);MAP.z=Math.max(MAP.z,17);mDraw();toast(j[0].properties.title||'移動しました');
+    const[lng,lat]=j[0].geometry.coordinates;MAP.cx=lng2x(lng);MAP.cy=lat2y(lat);MAP.z=Math.max(MAP.z,17);gPush();mDraw();toast(j[0].properties.title||'移動しました');
   }catch(e){toast('検索できませんでした。通信環境を確認するか「緯度,経度」で入力してください');}
 }
 const mLoadTile=(z,x,y,layer)=>new Promise(res=>{
@@ -2322,6 +2339,7 @@ const mLoadTile=(z,x,y,layer)=>new Promise(res=>{
   const im=new Image();im.crossOrigin='anonymous';im.onload=()=>res(im);im.onerror=()=>res(null);im.src=TILE[layer](z,x,y);
 });
 async function mImport(){
+  if(gIs())return gImport();
   const R=MAP.rect;
   if(!R||(R.x1-R.x0)*256*2**MAP.z<8||(R.y1-R.y0)*256*2**MAP.z<8)return toast('先に「⬚ 範囲指定」で、取り込む範囲をドラッグしてください');
   let z=18;while(z>5&&((R.x1-R.x0)*256*2**z>4000||(R.y1-R.y0)*256*2**z>4000))z--;
@@ -2341,16 +2359,102 @@ async function mImport(){
     toast(`地図を取り込みました（横 約${Math.round(W*res)}m）。実寸の縮尺は変換時に自動設定されます`);
   }catch(e){toast('取り込めませんでした：'+e.message);}
 }
+
+/* --- Googleマップ（Maps JavaScript API＋Static Maps API。APIキーは端末に保存） --- */
+const GM={key:'',map:null,loading:null,sync:false};
+try{GM.key=localStorage.getItem('gmKey')||'';}catch(_){}
+const gIs=()=>MAP.layer.startsWith('g_')&&!!GM.map&&$('#gMap').style.display!=='none';
+const GTYPE={g_sat:'satellite',g_hyb:'hybrid',g_road:'roadmap'};
+async function gAskKey(){
+  const v=await askText({title:'🔑 Google Maps APIキー',note:'Google Cloudで発行したAPIキーを入力してください。<br>有効にするAPI：<b>Maps JavaScript API</b>・<b>Maps Static API</b>（住所検索を使う場合は <b>Geocoding API</b> も）。<br>キーはこの端末にだけ保存されます。',value:GM.key});
+  closeModal();if(v===null)return false;
+  if(v!==GM.key&&GM.map){GM.key=v;try{localStorage.setItem('gmKey',v);}catch(_){}toast('APIキーを変更しました。反映するにはページを再読み込みしてください');return true;}
+  GM.key=v;try{localStorage.setItem('gmKey',v);}catch(_){}return true;
+}
+function gLoad(){
+  if(window.google&&google.maps&&google.maps.Map)return Promise.resolve();
+  if(GM.loading)return GM.loading;
+  GM.loading=new Promise((res,rej)=>{
+    window.__gmReady=()=>res();
+    window.gm_authFailure=()=>{toast('Google Maps APIキーが無効か、このページのURLで使用が許可されていません（「🔑 APIキー」で確認）');};
+    const sc=document.createElement('script');
+    sc.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GM.key)}&callback=__gmReady&language=ja&region=JP&loading=async`;
+    sc.async=true;sc.onerror=()=>{GM.loading=null;sc.remove();rej(new Error('Googleマップを読み込めません（通信環境を確認してください）'));};
+    document.head.appendChild(sc);
+  });
+  return GM.loading;
+}
+async function gEnsure(){
+  if(GM.map)return true;
+  if(!GM.key&&!(await gAskKey()))return false;
+  try{await gLoad();}catch(e){toast(e.message);return false;}
+  GM.map=new google.maps.Map($('#gMap'),{center:{lat:y2lat(MAP.cy),lng:x2lng(MAP.cx)},zoom:MAP.z,mapTypeId:GTYPE[MAP.layer]||'satellite',
+    gestureHandling:'greedy',isFractionalZoomEnabled:false,disableDefaultUI:true,zoomControl:false,tilt:0,clickableIcons:false});
+  GM.map.addListener('bounds_changed',()=>{
+    if(GM.sync)return;const c=GM.map.getCenter();if(!c)return;
+    MAP.cx=lng2x(c.lng());MAP.cy=lat2y(c.lat());MAP.z=GM.map.getZoom();if(MAP.open)mDraw();
+  });
+  return true;
+}
+function gPush(){ // アプリ側の中心・ズーム → Googleマップへ反映
+  if(!gIs())return;GM.sync=true;
+  GM.map.setZoom(MAP.z);GM.map.setCenter({lat:y2lat(MAP.cy),lng:x2lng(MAP.cx)});
+  setTimeout(()=>{GM.sync=false;},0);
+}
+async function mSetLayer(l){
+  let g=l.startsWith('g_');
+  if(g)$('#gMap').style.display='block';
+  if(g&&!(await gEnsure())){g=false;l='photo';toast('Googleマップを使えないため、国土地理院の地図を表示します');}
+  MAP.layer=l;$('#mLayer').value=l;try{localStorage.setItem('mapLayer',l);}catch(_){}
+  $('#gMap').style.display=g?'block':'none';
+  if(g){MAP.z=Math.min(MAP.z,21);GM.map.setMapTypeId(GTYPE[l]);google.maps.event.trigger(GM.map,'resize');gPush();}
+  else MAP.z=Math.min(MAP.z,18);
+  mSetMode(MAP.mode);mDraw();
+}
+function mHere(quiet){
+  if(!navigator.geolocation)return quiet||toast('この端末では現在地を取得できません');
+  if(!quiet)toast('現在地を取得中…');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const{latitude:lat,longitude:lng,accuracy:acc}=pos.coords;MAP.here={lat,lng,acc};
+    MAP.cx=lng2x(lng);MAP.cy=lat2y(lat);MAP.z=Math.max(MAP.z,gIs()?19:18);gPush();mDraw();
+    toast(`現在地に移動しました（精度 約${Math.round(acc)}m）。「⬚ 範囲指定」で取り込む範囲をドラッグします`);
+  },err=>{if(!quiet)toast(err.code===1?'位置情報の利用が許可されていません（端末の設定→Safari→位置情報 を「許可」に）':'現在地を取得できませんでした。住所検索をお使いください');},
+  {enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+}
+async function gImport(){
+  const R=MAP.rect;
+  if(!R||(R.x1-R.x0)*256*2**MAP.z<8||(R.y1-R.y0)*256*2**MAP.z<8)return toast('先に「⬚ 範囲指定」で、取り込む範囲をドラッグしてください');
+  // Static Maps は1枚 640×640（scale=2で1280×1280画素）まで。範囲が収まる最大ズームで取得
+  let z=21;while(z>3&&((R.x1-R.x0)*256*2**z>640||(R.y1-R.y0)*256*2**z>640))z--;
+  const W=Math.max(1,Math.round((R.x1-R.x0)*256*2**z)),H=Math.max(1,Math.round((R.y1-R.y0)*256*2**z));
+  const lat=y2lat((R.y0+R.y1)/2),lng=x2lng((R.x0+R.x1)/2);
+  const url=`https://maps.googleapis.com/maps/api/staticmap?center=${lat.toFixed(7)},${lng.toFixed(7)}&zoom=${z}&size=${W}x${H}&scale=2&maptype=${GTYPE[MAP.layer]}&language=ja&region=JP&key=${encodeURIComponent(GM.key)}`;
+  toast('Googleマップを取り込み中…');
+  try{
+    let im=null;
+    try{
+      const r=await fetch(url,{mode:'cors'});
+      if(!r.ok){const t=await r.text().catch(()=>'');throw new Error(r.status===403?'Maps Static API が有効になっていないか、APIキーの制限で拒否されました':('取得エラー '+r.status+' '+t.slice(0,80)));}
+      const b=await r.blob();if(!b.type.startsWith('image/'))throw new Error('画像を取得できませんでした');
+      const u=URL.createObjectURL(b);im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('画像を読み込めません'));i.src=u;});
+    }catch(e){
+      if(/Static|取得エラー/.test(e.message))throw e;
+      im=await new Promise((res,rej)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=()=>rej(new Error('Googleマップ画像を取得できませんでした（APIキー・通信環境をご確認ください）'));i.src=url;});
+    }
+    const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0);
+    let src;try{src=c.toDataURL('image/jpeg',.92);}catch(_){throw new Error('この環境ではGoogleマップ画像を取り込めません。「📋 貼付」でスクリーンショットを貼り付けてください');}
+    const res=40075016.686*Math.cos(lat*Math.PI/180)/(256*2**z),gw=W*res*1000;
+    mClose();dPlaceImage(c,src,gw);
+    toast(`Googleマップを貼り付けました（横 約${Math.round(W*res)}m）。実寸の縮尺は変換時に自動設定されます`);
+  }catch(e){toast('取り込めませんでした：'+e.message);}
+}
+$('#mHere').onclick=()=>mHere(false);
+$('#mKey').onclick=async()=>{if(await gAskKey()&&MAP.layer.startsWith('g_')&&!GM.map)mSetLayer(MAP.layer);};
 $('#mClose').onclick=mClose;$('#mGo').onclick=mSearch;$('#mQ').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)mSearch();});
-$('#mLayer').onchange=e=>{MAP.layer=e.target.value;mDraw();};
+$('#mLayer').onchange=e=>mSetLayer(e.target.value);
 $('#mPan').onclick=()=>mSetMode('pan');$('#mRect').onclick=()=>mSetMode('rect');
 $('#mZi').onclick=()=>mZoom(1);$('#mZo').onclick=()=>mZoom(-1);
 $('#mImport').onclick=mImport;
-$('#mGoogle').onclick=()=>{
-  const lat=y2lat(MAP.cy).toFixed(6),lng=x2lng(MAP.cx).toFixed(6);
-  window.open(`https://www.google.com/maps/@${lat},${lng},${MAP.z}z/data=!3m1!1e3`,'_blank');
-  toast('Googleマップを開きました。必要な範囲のスクリーンショットを撮り、図面作成画面の「🖼 画像」または貼り付け（Ctrl+V）で取り込めます');
-};
 new ResizeObserver(()=>{if(MAP.open)mResize();}).observe(mwrap);
 
 /* --- 開く・閉じる --- */
@@ -2390,7 +2494,6 @@ async function dPasteClip(){
   }catch(e){toast('貼り付けできません。画面を長押し→「ペースト」、またはスクリーンショットを写真に保存して「🖼 画像」から選んでください');}
 }
 $('#dPaste').onclick=dPasteClip;
-$('#dGmap').onclick=()=>{const lat=y2lat(MAP.cy).toFixed(6),lng=x2lng(MAP.cx).toFixed(6);window.open(`https://www.google.com/maps/@${lat},${lng},18z/data=!3m1!1e3`,'_blank');toast('Googleマップで範囲を表示→スクリーンショット→「コピー」→この画面で「📋 貼付」で貼り付けます');};
 $('#dIz').onclick=()=>dImgScale(1.1);$('#dIm').onclick=()=>dImgScale(1/1.1);
 document.addEventListener('paste',e=>{
   if(!DRW.open||MAP.open)return;
