@@ -135,7 +135,7 @@ button{font-weight:700}
       <button class="tab" data-tab="meas">📍 測定</button>
       <button class="tab" data-tab="aux">📏 作図補助</button>
       <button class="tab" data-tab="doc">📂 図面</button>
-      <button class="tab" data-tab="out">💾 保存・出力</button>
+      <button class="tab" data-tab="out">💾 保存・出力・印刷</button>
     </div>
     <span class="tbSp"></span>
     <span class="grp"><button id="bPrev">◀</button><span id="pgl">-</span><button id="bNext">▶</button></span>
@@ -159,7 +159,7 @@ button{font-weight:700}
     <button id="bOrtho" class="on" title="タッチ・ペン操作で、ほぼ水平／垂直になる場合に自動でまっすぐにします（パソコンはShiftを押しながらで水平／垂直に固定）">⊥ 水平垂直</button>
   </span></div>
   <div class="tbRow" data-pane="doc"><span class="grp"><button id="bOpen">📂 図面を開く</button><button id="bAdd" title="PDF・画像を新しいページ（別の階など）として追加します">➕ ページ追加</button><button id="bDelPage" class="danger" title="今表示しているページを図面から削除します（手書きで追加したページ等）">🗑 ページ削除</button><button id="bDraw" title="図面がない現場：手書きで作図してPDFに変換します">✏️ 手書き図面</button></span><span class="grp"><button id="bClean" title="キャッシュ整理">🧹 キャッシュ整理</button></span></div>
-  <div class="tbRow" data-pane="out"><span class="grp"><button id="bSave">💾 保存</button><button id="bLoad">📥 読込</button></span><span class="grp"><button id="bCsv">CSV</button><button id="bPng">PNG</button><button id="bPdf" class="pri">PDF(A3)</button></span></div>
+  <div class="tbRow" data-pane="out"><span class="grp"><button id="bSave">💾 保存</button><button id="bLoad">📥 読込</button></span><span class="grp"><button id="bCsv">CSV</button><button id="bPng">PNG</button><button id="bPdf" class="pri">PDF(A3)</button></span><span class="grp"><select id="prSize" title="印刷する用紙サイズ（図面は用紙に収まるよう自動で拡大縮小されます）"><option value="A3">A3</option><option value="A4">A4</option></select><button id="bPrint" class="pri" title="測定図・測点一覧をプリンターで印刷します（印刷ダイアログが開きます）">🖨 印刷</button></span></div>
 </div>
 <div id="main">
   <div id="wrap"><canvas id="cv"></canvas><div id="hud"></div><button id="pTab" type="button">📋 測点表を表示</button></div>
@@ -1424,25 +1424,62 @@ function pdfTableOne(fname,withMeas){
   }
   return out;
 }
-async function exportPdf(){
-  if(!S.bg)return toast('図面がありません');
-  toast('PDFを作成中…');
-  const cur=S.pageNo,selS=S.sel,selA=S.selA;
+// 出力用の各ページ（測定図＋測点一覧）をキャンバスで作る（PDF出力・印刷で共通）
+async function buildOutCanvases(){
+  const cur=S.pageNo,selS=S.sel,selA=S.selA,out=[];
   try{
-    await loadJsPdf();const {jsPDF}=window.jspdf;S.sel=null;S.selA=null;
-    let doc=null;
-    const add=c=>{const o=c.width>=c.height?'l':'p';if(!doc)doc=new jsPDF({orientation:o,unit:'mm',format:'a3'});else doc.addPage('a3',o);doc.addImage(c.toDataURL('image/jpeg',.92),'JPEG',0,0,o==='l'?420:297,o==='l'?297:420);};
+    S.sel=null;S.selA=null;
     for(let n=1;n<=(S.numPages||1);n++){
       const has=allPts().some(p=>p.page===n)||S.refs.some(r=>r.page===n)||S.meas.some(q=>q.page===n)||S.strokes.some(t=>t.page===n);
       if(!has&&n!==cur)continue;
       if(S.pageNo!==n)await showPage(n);
-      add(pdfDrawPage(n));
+      out.push(pdfDrawPage(n));
     }
-    pdfTablePages().forEach(add);
+    out.push(...pdfTablePages());
+  }finally{
     if(S.pageNo!==cur)await showPage(cur);
     S.sel=selS;S.selA=selA;refresh();
+  }
+  return out;
+}
+async function exportPdf(){
+  if(!S.bg)return toast('図面がありません');
+  toast('PDFを作成中…');
+  try{
+    await loadJsPdf();const {jsPDF}=window.jspdf;
+    const cs=await buildOutCanvases();
+    let doc=null;
+    for(const c of cs){const o=c.width>=c.height?'l':'p';if(!doc)doc=new jsPDF({orientation:o,unit:'mm',format:'a3'});else doc.addPage('a3',o);doc.addImage(c.toDataURL('image/jpeg',.92),'JPEG',0,0,o==='l'?420:297,o==='l'?297:420);}
     doc.save(`${baseName()}_測定図_A3_${stamp()}.pdf`);toast('A3のPDFを出力しました');
-  }catch(err){S.sel=selS;S.selA=selA;refresh();alert('PDF出力に失敗：'+err.message);}
+  }catch(err){alert('PDF出力に失敗：'+err.message);}
+}
+// プリンター印刷：出力ページを用紙1枚ずつに収めて印刷ダイアログを開く
+async function printOut(){
+  if(!S.bg)return toast('図面がありません');
+  toast('印刷用データを作成中…');
+  try{
+    const cs=await buildOutCanvases(),sz=$('#prSize').value==='A4'?'A4':'A3';
+    const pages=cs.map(c=>`<div class="pg ${c.width>=c.height?'l':'p'}"><img src="${c.toDataURL('image/jpeg',.92)}"></div>`).join('');
+    const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(baseName())}_測定図</title><style>
+@page land{size:${sz} landscape;margin:0}@page port{size:${sz} portrait;margin:0}
+html,body{margin:0;padding:0;background:#fff}
+.pg{box-sizing:border-box;break-after:page;page-break-after:always;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.pg:last-child{break-after:auto;page-break-after:auto}
+.pg.l{page:land;width:${sz==='A3'?'420mm':'297mm'};height:${sz==='A3'?'296mm':'209mm'}}
+.pg.p{page:port;width:${sz==='A3'?'297mm':'210mm'};height:${sz==='A3'?'419mm':'296mm'}}
+.pg img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+</style></head><body>${pages}</body></html>`;
+    document.querySelectorAll('iframe.prFrame').forEach(f=>f.remove());
+    const fr=document.createElement('iframe');fr.className='prFrame';
+    fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(fr);
+    const d=fr.contentWindow.document;d.open();d.write(html);d.close();
+    const imgs=[...d.images];
+    await Promise.all(imgs.map(im=>im.complete?1:new Promise(r=>{im.onload=im.onerror=r;})));
+    fr.contentWindow.focus();
+    setTimeout(()=>{try{fr.contentWindow.print();}catch(e){alert('印刷できませんでした：'+e.message);}},150);
+    toast(`${sz}で印刷ダイアログを開きました（${cs.length}ページ）`);
+  }catch(err){alert('印刷に失敗：'+err.message);}
 }
 const bufToB64=buf=>new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result.split(',')[1]);fr.readAsDataURL(new Blob([buf]));});
 function b64ToBuf(b){const bin=atob(b),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer;}
@@ -1588,7 +1625,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)flushSave()
 
 $('#bLoad').onclick=()=>$('#jfile').click();
 $('#jfile').onchange=e=>{loadProject(e.target.files[0]);e.target.value='';};
-$('#bSave').onclick=saveProject;$('#bCsv').onclick=exportCsv;$('#bPng').onclick=exportPng;$('#bPdf').onclick=exportPdf;
+$('#bSave').onclick=saveProject;$('#bCsv').onclick=exportCsv;$('#bPng').onclick=exportPng;$('#bPdf').onclick=exportPdf;$('#bPrint').onclick=printOut;
 $('#bUndo').onclick=undo;$('#bRedo').onclick=redo;
 $('#bFit').onclick=()=>{fitView();draw();scheduleHi();};
 $('#bNew').onclick=startPick;
