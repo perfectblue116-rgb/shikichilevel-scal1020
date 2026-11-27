@@ -159,7 +159,7 @@ button{font-weight:700}
     <button id="bOrtho" class="on" title="タッチ・ペン操作で、ほぼ水平／垂直になる場合に自動でまっすぐにします（パソコンはShiftを押しながらで水平／垂直に固定）">⊥ 水平垂直</button>
   </span></div>
   <div class="tbRow" data-pane="doc"><span class="grp"><button id="bOpen">📂 図面を開く</button><button id="bAdd" title="PDF・画像を新しいページ（別の階など）として追加します">➕ ページ追加</button><button id="bDelPage" class="danger" title="今表示しているページを図面から削除します（手書きで追加したページ等）">🗑 ページ削除</button><button id="bDraw" title="図面がない現場：手書きで作図してPDFに変換します">✏️ 手書き図面</button></span><span class="grp"><button id="bClean" title="キャッシュ整理">🧹 キャッシュ整理</button></span></div>
-  <div class="tbRow" data-pane="out"><span class="grp"><button id="bSave">💾 保存</button><button id="bLoad">📥 読込</button></span><span class="grp"><button id="bCsv">CSV</button><button id="bPng">PNG</button><button id="bPdf" class="pri">PDF(A3)</button></span><span class="grp olGrp" title="PDF・PNG・印刷に出る数値ラベル（枠と文字）の大きさ"><button class="olMinus" type="button">数値−</button><input class="olRange" type="range" min="0.3" max="4" step="0.1" value="1" style="width:90px;vertical-align:middle"><button class="olPlus" type="button">数値＋</button><b class="olVal" style="min-width:34px;text-align:center"></b></span><span class="grp"><select id="prSize" title="印刷する用紙サイズ（図面は用紙に収まるよう自動で拡大縮小されます）"><option value="A3">A3</option><option value="A4">A4</option></select><button id="bPrint" class="pri" title="測定図・測点一覧をプリンターで印刷します（印刷ダイアログが開きます）">🖨 印刷</button></span></div>
+  <div class="tbRow" data-pane="out"><span class="grp"><button id="bSave">💾 保存</button><button id="bLoad">📥 読込</button></span><span class="grp"><select id="outList" title="PDF・印刷に含める内容"><option value="all">図面＋測点一覧表</option><option value="drawing">図面のみ</option></select></span><span class="grp"><button id="bCsv">CSV</button><button id="bPng">PNG</button><button id="bPdf" class="pri">PDF(A3)</button></span><span class="grp olGrp" title="PDF・PNG・印刷に出る数値ラベル（枠と文字）の大きさ"><button class="olMinus" type="button">数値−</button><input class="olRange" type="range" min="0.3" max="4" step="0.1" value="1" style="width:90px;vertical-align:middle"><button class="olPlus" type="button">数値＋</button><b class="olVal" style="min-width:34px;text-align:center"></b></span><span class="grp"><select id="prSize" title="印刷する用紙サイズ（図面は用紙に収まるよう自動で拡大縮小されます）"><option value="A3">A3</option><option value="A4">A4</option></select><button id="bPrint" class="pri" title="測定図・測点一覧をプリンターで印刷します（印刷ダイアログが開きます）">🖨 印刷</button></span></div>
 </div>
 <div id="main">
   <div id="wrap"><canvas id="cv"></canvas><div id="hud"></div><button id="pTab" type="button">📋 測点表を表示</button></div>
@@ -216,7 +216,7 @@ const S={
   points:[],strokes:[],setups:[],activeId:null,nextNo:1,nextId:1,
   datum:{k:null,g:null,f:null},base:'p1',
   mode:'write',pickRef:false,pen:{color:'#111111',w:2.5},
-  unit:'mm',labelMode:'h',mk:1,mp:1,ol:1,wys:true,finger:false,
+  unit:'mm',labelMode:'h',mk:1,mp:1,ol:1,wys:true,outList:'all',finger:false,
   view:{s:1,tx:0,ty:0},sel:null,setOpen:false,
   scales:{},refs:[],meas:[],snapOn:true,orthoAuto:true,tmp:null,hover:null,hi:null,rs:1,selA:null,cross:false
 };
@@ -401,7 +401,7 @@ async function openCleanup(fromMgr){
 const nid=()=>S.nextId++;
 const pointById=id=>S.points.find(p=>p.id===id);
 function dataOf(){syncOut();return {floors:S.floors,wf:S.wf,points:S.points,strokes:S.strokes,setups:S.setups,activeId:S.activeId,nextNo:S.nextNo,nextId:S.nextId,datum:S.datum,scales:S.scales,refs:S.refs,meas:S.meas};}
-function settingsOf(){return {unit:S.unit,labelMode:S.labelMode,mk:S.mk,mp:S.mp,ol:S.ol,wys:S.wys,finger:S.finger,snapOn:S.snapOn,orthoAuto:S.orthoAuto,base:S.base,penColor:S.pen.color,penW:S.pen.w};}
+function settingsOf(){return {unit:S.unit,labelMode:S.labelMode,mk:S.mk,mp:S.mp,ol:S.ol,wys:S.wys,outList:S.outList,finger:S.finger,snapOn:S.snapOn,orthoAuto:S.orthoAuto,base:S.base,penColor:S.pen.color,penW:S.pen.w};}
 function restoreData(d){S.points=d.points||[];S.strokes=d.strokes||[];S.setups=d.setups||[];S.activeId=d.activeId??null;S.nextNo=d.nextNo||1;S.nextId=d.nextId||1;S.datum=Object.assign({k:null,g:null,f:null},d.datum||{});S.scales=d.scales||{};S.refs=d.refs||[];S.meas=d.meas||[];S.tmp=null;S.hover=null;S.sel=null;S.selA=null;S.pickRef=false;S.points.forEach(p=>{if(p.ax===undefined){p.ax=p.x;p.ay=p.y;}});
   S.floors=Array.isArray(d.floors)?d.floors:[];S.wf=d.wf??null;
   if(!S.floors.length&&(S.points.length||S.setups.length)){const id=S.nextId++;S.floors=[{id,name:'1階',pages:[...new Set(S.points.map(q=>q.page||1))],done:false}];S.wf=id;}
@@ -436,7 +436,7 @@ function updateFloorUi(){
   document.querySelectorAll('#noteCols .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===S.pen.color));
   const w=$('#noteW');if(w)w.value=String(S.pen.w);
 }
-function applySettings(s){if(!s)return;S.unit=s.unit||'mm';S.labelMode=s.labelMode||'h';S.mk=s.mk||1;S.mp=s.mp||s.mk||1;S.ol=s.ol||1;S.wys=s.wys!==false;S.finger=!!s.finger;S.snapOn=s.snapOn!==false;S.orthoAuto=s.orthoAuto!==false;S.base=['p1','kbm','gl','fl'].includes(s.base)?s.base:'p1';if(s.penColor)S.pen.color=s.penColor;if(s.penW)S.pen.w=s.penW;syncBar();}
+function applySettings(s){if(!s)return;S.unit=s.unit||'mm';S.labelMode=s.labelMode||'h';S.mk=s.mk||1;S.mp=s.mp||s.mk||1;S.ol=s.ol||1;S.wys=s.wys!==false;S.outList=s.outList==='drawing'?'drawing':'all';syncOutList();S.finger=!!s.finger;S.snapOn=s.snapOn!==false;S.orthoAuto=s.orthoAuto!==false;S.base=['p1','kbm','gl','fl'].includes(s.base)?s.base:'p1';if(s.penColor)S.pen.color=s.penColor;if(s.penW)S.pen.w=s.penW;syncBar();}
 function snapshot(){undoSt.push(JSON.stringify(dataOf()));if(undoSt.length>60)undoSt.shift();redoSt.length=0;}
 function undo(){if(!undoSt.length)return toast('これ以上戻せません');redoSt.push(JSON.stringify(dataOf()));restoreData(JSON.parse(undoSt.pop()));refresh();}
 function redo(){if(!redoSt.length)return toast('やり直す操作がありません');undoSt.push(JSON.stringify(dataOf()));restoreData(JSON.parse(redoSt.pop()));refresh();}
@@ -1441,7 +1441,7 @@ async function buildOutCanvases(){
       if(S.pageNo!==n)await showPage(n);
       out.push(pdfDrawPage(n));
     }
-    out.push(...pdfTablePages());
+    if(S.outList!=='drawing')out.push(...pdfTablePages());
   }finally{
     if(S.pageNo!==cur)await showPage(cur);
     S.sel=selS;S.selA=selA;refresh();
@@ -1546,9 +1546,10 @@ $('#hud').addEventListener('click',e=>{
 });
 function syncOl(){document.querySelectorAll('.olRange').forEach(r=>r.value=S.ol);document.querySelectorAll('.olVal').forEach(b=>b.textContent='×'+(+S.ol).toFixed(1));const w=document.getElementById('bWys');if(w)w.classList.toggle('on',!!S.wys);}
 function setOl(v){S.ol=Math.min(4,Math.max(0.3,Math.round(v*10)/10));syncOl();draw();scheduleSave();if(S.setOpen)renderPanel();}
+function syncOutList(){const e=document.getElementById('outList');if(e)e.value=S.outList||'all';}
 function syncMp(){const r=document.getElementById('mpRange');if(r)r.value=S.mp;}
 function setMp(v){S.mp=Math.min(4,Math.max(0.3,Math.round(v*10)/10));syncMp();draw();scheduleSave();if(S.setOpen)renderPanel();}
-function syncBar(){syncMp();syncOl();updateFloorUi();
+function syncBar(){syncOutList();syncMp();syncOl();updateFloorUi();
   document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===S.mode));
   $('#bSnap').classList.toggle('on',S.snapOn);$('#bOrtho').classList.toggle('on',S.orthoAuto);
   document.querySelectorAll('#bases button').forEach(b=>{b.classList.toggle('on',b.dataset.base===S.base);b.classList.toggle('dis',baseOffset(b.dataset.base)===null);});
@@ -1647,6 +1648,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)flushSave()
 
 $('#bLoad').onclick=()=>$('#jfile').click();
 $('#jfile').onchange=e=>{loadProject(e.target.files[0]);e.target.value='';};
+$('#outList').addEventListener('change',e=>{S.outList=e.target.value;scheduleSave();toast(S.outList==='drawing'?'PDF・印刷：図面のみ出力します':'PDF・印刷：図面＋測点一覧表を出力します');});
 $('#bSave').onclick=saveProject;$('#bCsv').onclick=exportCsv;$('#bPng').onclick=exportPng;$('#bPdf').onclick=exportPdf;$('#bPrint').onclick=printOut;
 $('#bUndo').onclick=undo;$('#bRedo').onclick=redo;
 $('#bFit').onclick=()=>{fitView();draw();scheduleHi();};
