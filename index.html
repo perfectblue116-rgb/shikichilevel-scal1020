@@ -511,7 +511,7 @@ function drawStroke(ctx,st){
 function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 // PDF(A3)出力で図面1px分が占める、ラベル用スケール（PNG・画面のPDF同寸表示も同じ値を使う）
 function kOut(){const land=S.W>=S.H,cw=land?2480:1754,ch=land?1754:2480,aw=cw-100,ah=ch-100-70,sc=Math.min(aw/S.W,ah/S.H);return (cw/1100)/sc;}
-let OUTBG=null,PQ=1.6; // OUTBG:出力用の高解像度背景 / PQ:出力解像度倍率（A3で約240dpi。iOSのcanvas上限を超えない値）
+let OUTVEC=false,OUTBG=null,PQ=1.6; // OUTBG:出力用の高解像度背景 / PQ:出力解像度倍率（A3で約240dpi。iOSのcanvas上限を超えない値）
 let OUT=false,WYSL=false; // OUT:出力描画中 / WYSL:画面でPDF同寸表示中
  // true: PDF/PNG/印刷の出力描画中
 function drawMarker(ctx,p,x,y,k){
@@ -920,7 +920,7 @@ function renderScene(ctx,dpr,v,k,live){
   ctx.save();
   ctx.setTransform(dpr*v.s,0,0,dpr*v.s,dpr*v.tx,dpr*v.ty);
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality=S.gesturing?'low':'high';
-  ctx.fillStyle='#fff';ctx.fillRect(0,0,S.W,S.H);if(!live&&OUTBG)ctx.drawImage(OUTBG,0,0,S.W,S.H);else ctx.drawImage(S.bg,0,0);
+  if(!(OUTVEC&&!live)){ctx.fillStyle='#fff';ctx.fillRect(0,0,S.W,S.H);if(!live&&OUTBG)ctx.drawImage(OUTBG,0,0,S.W,S.H);else ctx.drawImage(S.bg,0,0);} // ベクター出力時の背景はPDF側で描く
   if(live&&S.hi&&S.hi.page===S.pageNo)ctx.drawImage(S.hi.c,S.hi.x0,S.hi.y0,S.hi.w,S.hi.h);
   for(const st of S.strokes) if(st.page===S.pageNo)drawStroke(ctx,st);
   if(live&&g&&g.stroke)drawStroke(ctx,g.stroke);
@@ -1395,6 +1395,195 @@ async function loadJsPdf(){
   if(window.jspdf)return;
   await new Promise((res,rej)=>{const t=document.createElement('script');t.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';t.onload=res;t.onerror=()=>rej(new Error('PDF出力ライブラリを読み込めません。通信環境を確認してください。'));document.head.appendChild(t);});
 }
+/* ---------- ベクターPDF出力：canvasの描画命令を、そのままPDFの線・塗り・文字として書き出す ---------- */
+const _vcc=document.createElement('canvas').getContext('2d');
+const _vcol={};
+function pdfColor(c){
+  if(_vcol[c])return _vcol[c];
+  _vcc.fillStyle='#000';_vcc.fillStyle=c;const v=String(_vcc.fillStyle);let r=0,g=0,b=0,a=1,m;
+  if(v[0]==='#'&&v.length===4){r=parseInt(v[1]+v[1],16);g=parseInt(v[2]+v[2],16);b=parseInt(v[3]+v[3],16);}
+  else if(v[0]==='#'){r=parseInt(v.slice(1,3),16);g=parseInt(v.slice(3,5),16);b=parseInt(v.slice(5,7),16);}
+  else if((m=v.match(/rgba?\(([^)]+)\)/))){const q=m[1].split(',').map(Number);r=q[0];g=q[1];b=q[2];if(q.length>3)a=q[3];}
+  return _vcol[c]={r:r/255,g:g/255,b:b/255,a};
+}
+const _vm=document.createElement('canvas').getContext('2d');
+const vn=v=>{const r=Math.round(v*1000)/1000;return String(Object.is(r,-0)?0:r);};
+const d2b=u=>{const s=atob(u.split(',')[1]),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a;};
+class VecPage{
+  constructor(doc,fonts,ptW,ptH,cw,ch){
+    this.doc=doc;this.fonts=fonts;this.page=doc.addPage([ptW,ptH]);this.u=ptW/cw;this.ch=ch;
+    this.s=[];this.imgs=[];this.imgKey={};this.fontTag={};this.gsTag={};this.stack=[];
+    this.ctm=[1,0,0,1,0,0];this.pp=[];this.cur=null;this.start=null;
+    this.fillStyle='#000';this.strokeStyle='#000';this.lineWidth=1;this.lineCap='butt';this.lineJoin='miter';this._dash=[];
+    this.font='10px sans-serif';this.textAlign='left';this.textBaseline='alphabetic';this.globalAlpha=1;
+  }
+  /* 状態 */
+  save(){this.stack.push({ctm:this.ctm.slice(),fillStyle:this.fillStyle,strokeStyle:this.strokeStyle,lineWidth:this.lineWidth,lineCap:this.lineCap,lineJoin:this.lineJoin,_dash:this._dash,font:this.font,textAlign:this.textAlign,textBaseline:this.textBaseline,globalAlpha:this.globalAlpha});this.s.push('q');}
+  restore(){const o=this.stack.pop();if(!o)return;Object.assign(this,o);this.s.push('Q');}
+  setTransform(a,b,c,d,e,f){this.ctm=[a,b,c,d,e,f];}
+  scale(x,y){const m=this.ctm;this.ctm=[m[0]*x,m[1]*x,m[2]*y,m[3]*y,m[4],m[5]];}
+  setLineDash(a){this._dash=(a||[]).slice();}
+  measureText(t){_vm.font=this.font;return _vm.measureText(String(t));}
+  /* 座標変換：描画座標 → PDF座標(pt, 下原点) */
+  T(x,y){const m=this.ctm,X=m[0]*x+m[2]*y+m[4],Y=m[1]*x+m[3]*y+m[5];return [X*this.u,(this.ch-Y)*this.u];}
+  get sc(){const m=this.ctm;return Math.sqrt(Math.abs(m[0]*m[3]-m[1]*m[2]))||1;}
+  /* パス */
+  beginPath(){this.pp=[];this.cur=null;this.start=null;}
+  moveTo(x,y){const p=this.T(x,y);this.pp.push(`${vn(p[0])} ${vn(p[1])} m`);this.cur=[x,y];this.start=[x,y];}
+  lineTo(x,y){if(!this.cur)return this.moveTo(x,y);const p=this.T(x,y);this.pp.push(`${vn(p[0])} ${vn(p[1])} l`);this.cur=[x,y];}
+  closePath(){if(this.cur){this.pp.push('h');this.cur=this.start.slice();}}
+  _bez(x1,y1,x2,y2,x3,y3){const a=this.T(x1,y1),b=this.T(x2,y2),c=this.T(x3,y3);this.pp.push(`${vn(a[0])} ${vn(a[1])} ${vn(b[0])} ${vn(b[1])} ${vn(c[0])} ${vn(c[1])} c`);this.cur=[x3,y3];}
+  quadraticCurveTo(cx,cy,x,y){if(!this.cur)this.moveTo(cx,cy);const p=this.cur;this._bez(p[0]+2/3*(cx-p[0]),p[1]+2/3*(cy-p[1]),x+2/3*(cx-x),y+2/3*(cy-y),x,y);}
+  rect(x,y,w,h){this.moveTo(x,y);this.lineTo(x+w,y);this.lineTo(x+w,y+h);this.lineTo(x,y+h);this.closePath();this.moveTo(x,y);}
+  arc(cx,cy,r,a0,a1,ccw){
+    if(!(r>0))return;const TAU=Math.PI*2;let d=a1-a0;
+    if(!ccw){if(d>=TAU)d=TAU;else{d%=TAU;if(d<0)d+=TAU;}}
+    else{if(d<=-TAU)d=-TAU;else{d%=TAU;if(d>0)d-=TAU;}}
+    const sx=cx+r*Math.cos(a0),sy=cy+r*Math.sin(a0);
+    if(this.cur)this.lineTo(sx,sy);else this.moveTo(sx,sy);
+    const n=Math.max(1,Math.ceil(Math.abs(d)/(Math.PI/2)-1e-9)),st=d/n,k=4/3*Math.tan(st/4);
+    for(let i=0;i<n;i++){
+      const a=a0+i*st,b=a+st,ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b);
+      this._bez(cx+r*(ca-k*sa),cy+r*(sa+k*ca),cx+r*(cb+k*sb),cy+r*(sb-k*cb),cx+r*cb,cy+r*sb);
+    }
+  }
+  arcTo(x1,y1,x2,y2,r){
+    if(!this.cur){this.moveTo(x1,y1);return;}
+    const p0=this.cur,v0x=p0[0]-x1,v0y=p0[1]-y1,v2x=x2-x1,v2y=y2-y1,l0=Math.hypot(v0x,v0y),l2=Math.hypot(v2x,v2y);
+    if(!l0||!l2||!(r>0)){this.lineTo(x1,y1);return;}
+    const u0x=v0x/l0,u0y=v0y/l0,u2x=v2x/l2,u2y=v2y/l2,cross=u0x*u2y-u0y*u2x;
+    if(Math.abs(cross)<1e-9){this.lineTo(x1,y1);return;}
+    const th=Math.acos(Math.max(-1,Math.min(1,u0x*u2x+u0y*u2y))),d=r/Math.tan(th/2);
+    const t0x=x1+u0x*d,t0y=y1+u0y*d,t2x=x1+u2x*d,t2y=y1+u2y*d;
+    let bx=u0x+u2x,by=u0y+u2y;const bl=Math.hypot(bx,by);bx/=bl;by/=bl;
+    const cd=r/Math.sin(th/2),cx=x1+bx*cd,cy=y1+by*cd;
+    const a0=Math.atan2(t0y-cy,t0x-cx),a2=Math.atan2(t2y-cy,t2x-cx);
+    let df=a2-a0;while(df>Math.PI)df-=Math.PI*2;while(df<=-Math.PI)df+=Math.PI*2;
+    this.lineTo(t0x,t0y);this.arc(cx,cy,r,a0,a2,df<0);
+  }
+  /* 描画 */
+  _gs(a){
+    const key=Math.round(a*1000);
+    if(!this.gsTag[key]){const ref=this.doc.context.register(this.doc.context.obj({Type:'ExtGState',ca:a,CA:a}));this.gsTag[key]=this.page.node.newExtGState('G',ref).toString();}
+    return this.gsTag[key]+' gs';
+  }
+  _rgb(c){return `${vn(c.r)} ${vn(c.g)} ${vn(c.b)}`;}
+  fill(){
+    if(!this.pp.length)return;const c=pdfColor(this.fillStyle);
+    this.s.push(`${this._gs(c.a*this.globalAlpha)} ${this._rgb(c)} rg ${this.pp.join(' ')} f`);
+  }
+  stroke(){
+    if(!this.pp.length)return;const c=pdfColor(this.strokeStyle),k=this.sc*this.u,
+      J={butt:0,round:1,square:2}[this.lineCap]||0,j={miter:0,round:1,bevel:2}[this.lineJoin]||0;
+    let dash='[] 0 d';const dd=this._dash.filter(v=>isFinite(v));
+    if(dd.length&&dd.some(v=>v>0))dash=`[${dd.map(v=>vn(v*k)).join(' ')}] 0 d`;
+    this.s.push(`${this._gs(c.a*this.globalAlpha)} ${this._rgb(c)} RG ${vn(Math.max(this.lineWidth*k,0.01))} w ${J} J ${j} j ${dash} ${this.pp.join(' ')} S`);
+  }
+  clip(){if(this.pp.length)this.s.push(`${this.pp.join(' ')} W n`);}
+  _tmpPath(fn){const o=[this.pp,this.cur,this.start];this.pp=[];this.cur=null;this.start=null;try{fn();}finally{[this.pp,this.cur,this.start]=o;}}
+  fillRect(x,y,w,h){this._tmpPath(()=>{this.rect(x,y,w,h);this.fill();});}
+  strokeRect(x,y,w,h){this._tmpPath(()=>{this.rect(x,y,w,h);this.stroke();});}
+  drawImage(){/* ベクター出力では背景はPDF側で描くため使わない */}
+  /* 文字：英数字はPDFのフォント文字、日本語などは高解像度の透過画像 */
+  fillText(t,x,y){
+    t=String(t);if(!t)return;
+    const fm=/(?:(bold)\s+)?([\d.]+)px/.exec(this.font),size=fm?parseFloat(fm[2]):12,bold=!!(fm&&fm[1]);
+    const mt=this.measureText(t),fa=mt.fontBoundingBoxAscent??size*0.9,fd=mt.fontBoundingBoxDescent??size*0.25,
+      ea=mt.emHeightAscent??fa,ed=mt.emHeightDescent??fd,tb=this.textBaseline;
+    let off=0;
+    if(tb==='top'||tb==='hanging')off=ea;else if(tb==='middle')off=(ea-ed)/2;else if(tb==='bottom'||tb==='ideographic')off=-ed;
+    const ta=this.textAlign,al=(w)=>ta==='center'?-w/2:(ta==='right'||ta==='end')?-w:0;
+    const c=pdfColor(this.fillStyle),m=this.ctm,u=this.u,ch=this.ch,gs=this._gs(c.a*this.globalAlpha);
+    if(/^[\x20-\x7e]+$/.test(t)){
+      const font=bold?this.fonts.b:this.fonts.r,w=font.widthOfTextAtSize(t,size),x0=x+al(w),y0=y+off;
+      const tag=this.fontTag[bold?'b':'r']||(this.fontTag[bold?'b':'r']=this.page.node.newFontDictionary('F',font.ref).toString());
+      const hex=Array.from(t).map(q=>q.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+      const tm=[u*m[0],-u*m[1],-u*m[2],u*m[3],u*(m[0]*x0+m[2]*y0+m[4]),u*(ch-(m[1]*x0+m[3]*y0+m[5]))].map(vn).join(' ');
+      this.s.push(`${gs} ${this._rgb(c)} rg BT ${tag} ${vn(size)} Tf ${tm} Tm <${hex}> Tj ET`);
+      return;
+    }
+    const w=mt.width,x0=x+al(w),R=Math.max(1,Math.min(12,Math.ceil(8.4*this.sc*u))),pad=Math.ceil(size*0.2)+1,
+      iw=w+2*pad,ih=fa+fd+2*pad,pw=Math.ceil(iw*R),ph=Math.ceil(ih*R);
+    if(pw>9000||ph>9000||pw<1||ph<1)return;
+    const key=this.font+'|'+this.fillStyle+'|'+R+'|'+t;let idx=this.imgKey[key];
+    if(idx===undefined){
+      const cv=document.createElement('canvas');cv.width=pw;cv.height=ph;const rc=cv.getContext('2d');
+      rc.font=this.font.replace(/([\d.]+)px/,(_,v)=>(parseFloat(v)*R)+'px');rc.fillStyle=this.fillStyle;rc.textBaseline='alphabetic';rc.textAlign='left';
+      rc.fillText(t,pad*R,(pad+fa)*R);
+      idx=this.imgs.length;this.imgs.push({bytes:d2b(cv.toDataURL('image/png')),tag:''});this.imgKey[key]=idx;
+    }
+    const ix=x0-pad,iy=y+off-fa-pad,cm=[u*m[0]*iw,-u*m[1]*iw,-u*m[2]*ih,u*m[3]*ih,u*(m[0]*ix+m[2]*(iy+ih)+m[4]),u*(ch-(m[1]*ix+m[3]*(iy+ih)+m[5]))].map(vn).join(' ');
+    this.s.push(`q ${this._gs(this.globalAlpha)} ${cm} cm %%IMG${idx}%% Do Q`);
+  }
+  async finish(){
+    for(const im of this.imgs){const img=await this.doc.embedPng(im.bytes);im.tag=this.page.node.newXObject('Im',img.ref).toString();}
+    while(this.stack.length){this.stack.pop();this.s.push('Q');}
+    const body='q\n'+this.s.join('\n').replace(/%%IMG(\d+)%%/g,(_,i)=>this.imgs[+i].tag)+'\nQ';
+    this.page.node.addContentStream(this.doc.context.register(this.doc.context.stream(body)));
+  }
+}
+
+/* ベクターPDF出力：元PDFの図面ページをそのまま埋め込み、測点・ラベル・線は線／塗り／文字として描く */
+function pdfLayout(){
+  const land=S.W>=S.H,cw=land?2480:1754,ch=land?1754:2480,m=50,hd=70,aw=cw-2*m,ah=ch-2*m-hd,sc=Math.min(aw/S.W,ah/S.H);
+  return {cw,ch,m,hd,aw,ah,sc,tx:m+(aw-S.W*sc)/2,ty:m+hd+(ah-S.H*sc)/2};
+}
+async function vecDrawPage(doc,mk,src,n){
+  const L=pdfLayout(),{cw,ch,m,hd,aw,ah,sc,tx,ty}=L,x=mk(cw,ch),u=x.u;
+  const bx=tx*u,by=(ch-ty-S.H*sc)*u,bw=S.W*sc*u,bh=S.H*sc*u;
+  let done=false;
+  if(src&&S.kind==='pdf'&&S.pdfDoc){
+    try{
+      const pg=await S.pdfDoc.getPage(n);
+      if(!(pg.rotate%360)){
+        const v=pg.view,emb=await doc.embedPage(src.getPage(n-1),{left:v[0],bottom:v[1],right:v[2],top:v[3]});
+        x.page.drawPage(emb,{x:bx,y:by,width:bw,height:bh});done=true;
+      }
+    }catch(e){console.warn('ベクター背景を使えないページ',n,e);}
+  }
+  if(!done){ // 画像図面・回転ページ：高解像度の画像で貼る
+    let bgc=S.bg;
+    if(S.kind==='pdf'&&S.pdfDoc){
+      try{
+        const pg=await S.pdfDoc.getPage(n),vp=pg.getViewport({scale:S.rs*sc*PQ}),c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(vp.width));c.height=Math.max(1,Math.round(vp.height));
+        const cx=c.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,c.width,c.height);
+        await pg.render({canvasContext:cx,viewport:vp}).promise;bgc=c;
+      }catch(_){bgc=S.bg;}
+    }
+    const img=await doc.embedJpg(d2b(bgc.toDataURL('image/jpeg',.95)));
+    x.page.drawImage(img,{x:bx,y:by,width:bw,height:bh});
+  }
+  x.fillStyle='#111';x.font='bold 38px sans-serif';x.textBaseline='top';x.textAlign='left';
+  x.fillText(`${S.siteName||''}　測定図　${n}/${S.numPages||1}ページ　${stamp()}`,m,m);
+  x.save();x.beginPath();x.rect(m,m+hd,aw,ah);x.clip();
+  OUTVEC=true;try{renderScene(x,1,{s:sc,tx,ty},cw/1100,false);}finally{OUTVEC=false;}
+  x.restore();x.strokeStyle='#000';x.lineWidth=2;x.strokeRect(m,m+hd,aw,ah);
+  return x;
+}
+async function buildVectorPdf(){
+  await loadPdfLib();const{PDFDocument,StandardFonts}=PDFLib;
+  const doc=await PDFDocument.create();
+  const fonts={r:await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold)};
+  let src=null;if(S.kind==='pdf'){try{src=await PDFDocument.load(S.bytes,{ignoreEncryption:true});}catch(_){src=null;}}
+  const mk=(cw,ch)=>{const l=cw>=ch;return new VecPage(doc,fonts,l?1190.55:841.89,l?841.89:1190.55,cw,ch);};
+  const cur=S.pageNo,selS=S.sel,selA=S.selA,pages=[];
+  try{
+    S.sel=null;S.selA=null;
+    for(let n=1;n<=(S.numPages||1);n++){
+      const has=allPts().some(p=>p.page===n)||S.refs.some(r=>r.page===n)||S.meas.some(q=>q.page===n)||S.strokes.some(t=>t.page===n);
+      if(!has&&n!==cur)continue;
+      if(S.pageNo!==n)await showPage(n);
+      pages.push(await vecDrawPage(doc,mk,src,n));
+    }
+    if(S.outList!=='drawing')pages.push(...pdfTablePages(mk));
+  }finally{
+    if(S.pageNo!==cur)await showPage(cur);
+    S.sel=selS;S.selA=selA;refresh();
+  }
+  for(const p of pages)await p.finish();
+  return await doc.save();
+}
 async function pdfDrawPage(n){
   const land=S.W>=S.H,cw=land?2480:1754,ch=land?1754:2480,c=document.createElement('canvas');c.width=Math.round(cw*PQ);c.height=Math.round(ch*PQ);
   const x=c.getContext('2d');x.scale(PQ,PQ);x.fillStyle='#fff';x.fillRect(0,0,cw,ch);
@@ -1418,13 +1607,13 @@ async function pdfDrawPage(n){
   x.restore();x.strokeStyle='#000';x.lineWidth=2;x.strokeRect(m,m+hd,aw,ah);
   return c;
 }
-function pdfTablePages(){
-  if(!S.floors.length)return pdfTableOne('',true);
+function pdfTablePages(mkv){
+  if(!S.floors.length)return pdfTableOne('',true,mkv);
   const out=[];let first=true;
-  eachFloor(f=>{out.push(...pdfTableOne(f.name,first));first=false;});
+  eachFloor(f=>{out.push(...pdfTableOne(f.name,first,mkv));first=false;});
   return out;
 }
-function pdfTableOne(fname,withMeas){
+function pdfTableOne(fname,withMeas,mkv){
   const pts=[...S.points].sort((a,b)=>a.no-b.no);if(!pts.length&&!(withMeas&&S.meas.length))return [];
   const u=unitLabel(),cols=['測点','測定場所','設置','読み値(mm)',`設置基準比(${u})`,`基準点1比(${u})`];if(S.base!=='p1')cols.push(`${BASE_NAME[S.base]}比(${u})`);
   const rows=pts.map(p=>{const s=S.setups.find(z=>z.id===p.setupId),rel=s&&p.id===s.refPointId?0:(s?s.refReading-p.reading:0);
@@ -1432,7 +1621,8 @@ function pdfTableOne(fname,withMeas){
   if(withMeas)S.meas.forEach((q,i)=>{const d=distMM(q.a,q.b),r=['距離'+(i+1),q.page+'頁',fmtMM(d),fmtM(d),''];while(r.length<cols.length)r.push('');rows.push(r);});
   const cw=2480,ch=1754,m=50,hd=70,rh=64,per=Math.floor((ch-2*m-hd-rh)/rh),out=[];
   for(let o=0;o<rows.length;o+=per){
-    const c=document.createElement('canvas');c.width=Math.round(cw*PQ);c.height=Math.round(ch*PQ);const x=c.getContext('2d');x.scale(PQ,PQ);x.fillStyle='#fff';x.fillRect(0,0,cw,ch);
+    let c,x;if(mkv){c=mkv(cw,ch);x=c;}else{c=document.createElement('canvas');c.width=Math.round(cw*PQ);c.height=Math.round(ch*PQ);x=c.getContext('2d');x.scale(PQ,PQ);}
+    x.fillStyle='#fff';x.fillRect(0,0,cw,ch);
     x.textBaseline='middle';x.fillStyle='#111';x.font='bold 38px sans-serif';x.textAlign='left';x.fillText(`${S.siteName||''}${fname?'　['+fname+']':''}　測点一覧（${BASE_NAME[S.base]}基準）`,m,m+30);
     const w=(cw-2*m)/cols.length;let y=m+hd;
     x.fillStyle='#e6eaf0';x.fillRect(m,y,cw-2*m,rh);x.fillStyle='#111';x.font='bold 32px sans-serif';x.textAlign='center';
@@ -1462,7 +1652,11 @@ async function buildOutCanvases(){
 }
 async function exportPdf(){
   if(!S.bg)return toast('図面がありません');
-  toast('PDFを作成中…');
+  toast('PDFを作成中…（ベクター）');
+  try{
+    const bytes=await buildVectorPdf();
+    download(new Blob([bytes],{type:'application/pdf'}),`${baseName()}_測定図_A3_${stamp()}.pdf`);toast('A3のPDF（ベクター）を出力しました');return;
+  }catch(err){console.error(err);toast('ベクター出力に失敗したため、高解像度の画像で出力します');}
   try{
     await loadJsPdf();const {jsPDF}=window.jspdf;
     const cs=await buildOutCanvases();
