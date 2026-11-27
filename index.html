@@ -158,7 +158,7 @@ button{font-weight:700}
     <button id="bSnap" class="on" title="仮線の端点・交点・線上に吸着">🧲 吸着</button>
     <button id="bOrtho" class="on" title="タッチ・ペン操作で、ほぼ水平／垂直になる場合に自動でまっすぐにします（パソコンはShiftを押しながらで水平／垂直に固定）">⊥ 水平垂直</button>
   </span></div>
-  <div class="tbRow" data-pane="doc"><span class="grp"><button id="bOpen">📂 図面を開く</button><button id="bAdd" title="PDF・画像を新しいページ（別の階など）として追加します">➕ ページ追加</button><button id="bDraw" title="図面がない現場：手書きで作図してPDFに変換します">✏️ 手書き図面</button></span><span class="grp"><button id="bClean" title="キャッシュ整理">🧹 キャッシュ整理</button></span></div>
+  <div class="tbRow" data-pane="doc"><span class="grp"><button id="bOpen">📂 図面を開く</button><button id="bAdd" title="PDF・画像を新しいページ（別の階など）として追加します">➕ ページ追加</button><button id="bDelPage" class="danger" title="今表示しているページを図面から削除します（手書きで追加したページ等）">🗑 ページ削除</button><button id="bDraw" title="図面がない現場：手書きで作図してPDFに変換します">✏️ 手書き図面</button></span><span class="grp"><button id="bClean" title="キャッシュ整理">🧹 キャッシュ整理</button></span></div>
   <div class="tbRow" data-pane="out"><span class="grp"><button id="bSave">💾 保存</button><button id="bLoad">📥 読込</button></span><span class="grp"><button id="bCsv">CSV</button><button id="bPng">PNG</button><button id="bPdf" class="pri">PDF(A3)</button></span></div>
 </div>
 <div id="main">
@@ -1726,6 +1726,54 @@ async function openFiles(files){
 }
 $('#file').onchange=e=>{const fs=[...e.target.files];e.target.value='';openFiles(fs);};
 $('#bAdd').onclick=()=>$('#file2').click();
+
+/* ---------- 表示中のページを図面から削除（手書き図面で追加したページ等） ---------- */
+async function deleteCurrentPage(){
+  if(!S.bg||!S.siteId)return toast('先に図面を開いてください');
+  if(S.kind!=='pdf'||(S.numPages||1)<2)return toast('最後の1ページは削除できません。図面ごと差し替える場合は「📂 図面を開く」、現場ごと消す場合は「現場管理」を使ってください');
+  const n=S.pageNo,total=S.numPages;
+  syncOut();
+  const fl=S.floors.filter(f=>(f.pages||[]).includes(n));
+  // 他ページと同じフロアで、このページに測点がある場合は、測定データの整合性のため削除させない
+  const blocked=fl.find(f=>(f.pages||[]).length>1&&(f.points||[]).some(p=>p.page===n));
+  if(blocked)return toast(`ページ${n}の測点が、他ページと共通のフロア「${blocked.name}」に含まれています。先にこのページの測点を消すか、フロア別の測定でフロアを整理してから削除してください`);
+  const cnt={pt:fl.reduce((a,f)=>a+(f.points||[]).filter(p=>p.page===n).length,0),
+    st:S.strokes.filter(t=>t.page===n).length,rf:S.refs.filter(r=>r.page===n).length,ms:S.meas.filter(q=>q.page===n).length};
+  const info=[cnt.pt?`測点${cnt.pt}`:'',cnt.st?`手書き注釈${cnt.st}`:'',cnt.rf?`仮線${cnt.rf}`:'',cnt.ms?`距離${cnt.ms}`:'',S.scales[n]?'縮尺設定':''].filter(Boolean).join('・');
+  if(!confirm(`ページ ${n} / 全${total}ページ を図面から削除します。\n`+(info?`このページの${info}も一緒に消えます。\n`:'')+(fl.length?`（このページだけのフロア「${fl.map(f=>f.name).join('」「')}」の測定データも消えます）\n`:'')+'この操作は元に戻せません。よろしいですか？'))return;
+  try{
+    toast('ページを削除中…');
+    await flushSave();
+    await loadPdfLib();
+    const doc=await PDFLib.PDFDocument.load(S.bytes,{ignoreEncryption:true});
+    doc.removePage(n-1);
+    const u=await doc.save();
+    // データ側：該当ページ分を消し、後ろのページ番号を1つ詰める
+    const del=new Set(fl.map(f=>f.id));
+    S.floors=S.floors.filter(f=>!del.has(f.id));
+    if(del.has(S.wf))loadFloor(null);
+    const sh=p=>p>n?p-1:p;
+    for(const f of S.floors){
+      f.pages=(f.pages||[]).filter(p=>p!==n).map(sh);
+      for(const p of (f.points||[]))p.page=sh(p.page);
+    }
+    S.floors=S.floors.filter(f=>(f.pages||[]).length||(f.points||[]).length);
+    if(S.wf!==null&&!S.floors.some(f=>f.id===S.wf))loadFloor(null);
+    S.strokes=S.strokes.filter(t=>t.page!==n);S.strokes.forEach(t=>{t.page=sh(t.page);});
+    S.refs=S.refs.filter(r=>r.page!==n);S.refs.forEach(r=>{r.page=sh(r.page);});
+    S.meas=S.meas.filter(q=>q.page!==n);S.meas.forEach(q=>{q.page=sh(q.page);});
+    const ns={};for(const[k,v]of Object.entries(S.scales||{})){const p=+k;if(p===n)continue;ns[sh(p)]=v;}S.scales=ns;
+    S.sel=null;S.selA=null;S.tmp=null;S.hover=null;S.hi=null;
+    undoSt.length=0;redoSt.length=0;
+    S.bytes=u8buf(u);S.fileName=S.fileName||'図面.pdf';
+    await loadPdfDoc();
+    await DB.set('sf:'+S.siteId,{bytes:S.bytes,kind:S.kind,mime:S.mime,fileName:S.fileName});
+    await showPage(Math.min(n,S.numPages));
+    refresh();scheduleSave();
+    toast(`ページ${n}を削除しました（全${S.numPages}ページ）`);
+  }catch(err){toast('ページを削除できませんでした：'+err.message);}
+}
+$('#bDelPage').onclick=deleteCurrentPage;
 $('#file2').onchange=async e=>{const fs=[...e.target.files];e.target.value='';if(!fs.length)return;try{await appendItems(await Promise.all(fs.map(fileItem)));}catch(err){toast('追加できませんでした：'+err.message);}};
 
 /* ---------- 手書き作図 → PDF変換 ---------- */
